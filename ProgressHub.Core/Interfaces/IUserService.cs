@@ -11,6 +11,7 @@ namespace ProgressHub.Core.Interfaces
     {
         Task<List<User>> GetAllClientsAsync();
         Task AddClientAsync(User newClient);
-
+        Task<User?> GetClientByIdAsync(int id);
+        Task AddDailyLogAsync(DailyLog newDaylog);
     }
 }

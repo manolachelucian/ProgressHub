@@ -1,0 +1,247 @@
+﻿@page "/clients/{Id:int}"
+@using ProgressHub.Core.Interfaces
+@using ProgressHub.Core.Models
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Client Detail</PageTitle>
+
+@if (_isLoading)
+{
+    <p><em>Loading client...</em></p>
+}
+else if (_client is null)
+{
+    <p>Client not found.</p>
+    <button class="btn btn-secondary" @onclick="BackToList">Back to Clients</button>
+}
+else
+{
+    <button class="btn btn-link mb-2 px-0" @onclick="BackToList">&larr; Back to Clients</button>
+    <h1>@_client.GetFullName()</h1>
+    <p class="text-muted">@_client.Email</p>
+
+    <h4>Biometrics</h4>
+    <table class="table table-sm w-auto">
+        <tbody>
+            <tr><th>Age</th><td>@_client.GetAge()</td></tr>
+            <tr><th>Height</th><td>@_client.HeightInCm cm</td></tr>
+            <tr><th>Current Weight</th><td>@GetLatestWeightDisplay()</td></tr>
+            <tr><th>BMI</th><td>@GetBmiDisplay()</td></tr>
+        </tbody>
+    </table>
+
+    <h4>Macro Targets</h4>
+    <table class="table table-sm w-auto">
+        <tbody>
+            <tr><th>Calories</th><td>@_client.TargetCalories kcal</td></tr>
+            <tr><th>Protein</th><td>@_client.TargetProteinGrams g</td></tr>
+            <tr><th>Carbs</th><td>@_client.TargetCarbsGrams g</td></tr>
+            <tr><th>Fats</th><td>@_client.TargetFatsGrams g</td></tr>
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <h4>Daily Log History</h4>
+        <button class="btn btn-primary mb-2" @onclick="OpenAddLogModal">
+            + Add Daily Log
+        </button>
+    </div>
+
+    @if (_client.DailyLogs.Count == 0)
+    {
+        <p>No logs recorded yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Weight (kg)</th>
+                    <th>Calories</th>
+                    <th>Protein (g)</th>
+                    <th>Carbs (g)</th>
+                    <th>Fats (g)</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in _client.DailyLogs.OrderByDescending(l => l.Date))
+                {
+                    <tr>
+                        <td>@log.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@log.Weight.ToString("0.0")</td>
+                        <td>@log.ConsumedCalories</td>
+                        <td>@log.ConsumedProteins</td>
+                        <td>@log.ConsumedCarbs</td>
+                        <td>@log.ConsumedFats</td>
+                        <td>@(log.Note ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (_showAddLogModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Daily Log</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAddLogModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="_newLog" OnValidSubmit="HandleAddLog">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <InputDate class="form-control" @bind-Value="_newLog.Date" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Weight (kg)</label>
+                            <InputNumber class="form-control" @bind-Value="_newLog.Weight" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Calories</label>
+                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedCalories" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Protein (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedProteins" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Carbs (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedCarbs" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Fats (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedFats" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Note (optional)</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="_newLog.Note" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_submitError))
+                        {
+                            <div class="alert alert-danger">@_submitError</div>
+                        }
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAddLogModal">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                @(_isSubmitting ? "Saving..." : "Save Log")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private User? _client;
+    private bool _isLoading = true;
+
+    private bool _showAddLogModal;
+    private bool _isSubmitting;
+    private string? _submitError;
+    private DailyLog _newLog = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClientAsync();
+    }
+
+    private async Task LoadClientAsync()
+    {
+        _client = await UserService.GetClientByIdAsync(Id);
+        _isLoading = false;
+    }
+
+    private DailyLog? GetLatestLog() =>
+        _client?.DailyLogs.OrderByDescending(l => l.Date).FirstOrDefault();
+
+    private string GetLatestWeightDisplay()
+    {
+        var latest = GetLatestLog();
+        return latest is null ? "—" : $"{latest.Weight:0.0} kg";
+    }
+
+    private string GetBmiDisplay()
+    {
+        var latest = GetLatestLog();
+        if (latest is null || _client is null)
+        {
+            return "—";
+        }
+
+        var bmi = _client.CalculateBmi(latest.Weight);
+        return bmi is null ? "—" : bmi.Value.ToString("0.0");
+    }
+
+    private void BackToList()
+    {
+        NavigationManager.NavigateTo("/clients");
+    }
+
+    private void OpenAddLogModal()
+    {
+        _newLog = new DailyLog
+        {
+            UserId = Id,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow)
+        };
+        _submitError = null;
+        _showAddLogModal = true;
+    }
+
+    private void CloseAddLogModal()
+    {
+        _showAddLogModal = false;
+    }
+
+    private async Task HandleAddLog()
+    {
+        _isSubmitting = true;
+        _submitError = null;
+
+        try
+        {
+            await UserService.AddDailyLogAsync(_newLog);
+            _showAddLogModal = false;
+            await LoadClientAsync(); // reload so the new/updated log appears in the table
+        }
+        catch (KeyNotFoundException)
+        {
+            _submitError = "This client no longer exists.";
+        }
+        catch (Exception)
+        {
+            _submitError = "Failed to save log. Please try again.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

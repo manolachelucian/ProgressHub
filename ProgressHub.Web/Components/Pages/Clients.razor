@@ -1,0 +1,187 @@
+﻿@page "/clients"
+@using ProgressHub.Core.Interfaces
+@using ProgressHub.Core.Models
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Clients - ProgressHub</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Clients</h1>
+    <button class="btn btn-primary" @onclick="OpenAddClientModal">
+        + Add New Client
+    </button>
+</div>
+
+@if (_isLoading)
+{
+    <p><em>Loading clients...</em></p>
+}
+else if (_clients.Count == 0)
+{
+    <div class="alert alert-info">
+        No clients found. Click <strong>+ Add New Client</strong> to create your first client.
+    </div>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Target Calories</th>
+                <th>Latest Weight</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var client in _clients)
+            {
+                <tr style="cursor: pointer;" @onclick="() => NavigateToDetail(client.Id)">
+                    <td><strong>@client.GetFullName()</strong></td>
+                    <td>@client.Email</td>
+                    <td>@client.TargetCalories kcal</td>
+                    <td>@GetLatestWeightDisplay(client)</td>
+                    <td>
+                        <button class="btn btn-outline-primary btn-sm" @onclick:stopPropagation="true" @onclick="() => NavigateToDetail(client.Id)">
+                            View Detail &rarr;
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@* --- Modal pro přidání nového klienta --- *@
+@if (_showAddModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Client</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAddClientModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="_newClient" OnValidSubmit="HandleAddClient">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">First Name</label>
+                                <InputText class="form-control" @bind-Value="_newClient.FirstName" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Last Name</label>
+                                <InputText class="form-control" @bind-Value="_newClient.LastName" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="_newClient.Email" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Height (cm)</label>
+                                <InputNumber class="form-control" @bind-Value="_newClient.HeightInCm" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Target Calories</label>
+                                <InputNumber class="form-control" @bind-Value="_newClient.TargetCalories" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Protein (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newClient.TargetProteinGrams" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Carbs (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newClient.TargetCarbsGrams" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Fats (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_newClient.TargetFatsGrams" />
+                            </div>
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAddClientModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                @(_isSubmitting ? "Saving..." : "Create Client")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<User> _clients = new();
+    private bool _isLoading = true;
+    private bool _showAddModal;
+    private bool _isSubmitting;
+    private User _newClient = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClientsAsync();
+    }
+
+    private async Task LoadClientsAsync()
+    {
+        _isLoading = true;
+        _clients = await UserService.GetAllClientsAsync();
+        _isLoading = false;
+    }
+
+    private void NavigateToDetail(int clientId)
+    {
+        NavigationManager.NavigateTo($"/clients/{clientId}");
+    }
+
+    private string GetLatestWeightDisplay(User client)
+    {
+        var latest = client.DailyLogs.OrderByDescending(l => l.Date).FirstOrDefault();
+        return latest is null ? "—" : $"{latest.Weight:0.0} kg";
+    }
+
+    private void OpenAddClientModal()
+    {
+        _newClient = new User
+        {
+            DateOfBirth = new DateOnly(2000, 1, 1),
+            HeightInCm = 175,
+            TargetCalories = 2000
+        };
+        _showAddModal = true;
+    }
+
+    private void CloseAddClientModal()
+    {
+        _showAddModal = false;
+    }
+
+    private async Task HandleAddClient()
+    {
+        _isSubmitting = true;
+        try
+        {
+            await UserService.AddClientAsync(_newClient);
+            _showAddModal = false;
+            await LoadClientsAsync();
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

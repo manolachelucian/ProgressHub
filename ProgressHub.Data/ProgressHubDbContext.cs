@@ -34,6 +34,10 @@ namespace ProgressHub.Data
                 .WithMany(u => u.DailyLogs)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DailyLog>()
+                .HasIndex(d => new { d.UserId, d.Date })
+                .IsUnique();
         }
     }
 }

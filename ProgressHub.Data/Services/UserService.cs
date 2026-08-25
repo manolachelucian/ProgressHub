@@ -8,16 +8,18 @@ namespace ProgressHub.Data.Services
 {
     public class UserService : IUserService
     {
-        private readonly ProgressHubDbContext _context;
+        private readonly IDbContextFactory<ProgressHubDbContext> _contextFactory;
 
-        public UserService(ProgressHubDbContext context)
+        public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<List<User>> GetAllClientsAsync()
         {
-            return await _context.Users
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            return await context.Users
                 .Where(u => u.UserRole == UserRole.Client)
                 .Include(u => u.DailyLogs)
                 .OrderBy(u => u.LastName)
@@ -26,17 +28,49 @@ namespace ProgressHub.Data.Services
 
         public async Task AddClientAsync(User newClient)
         {
+            await using var context = await _contextFactory.CreateDbContextAsync();
             newClient.UserRole = UserRole.Client;
-            _context.Users.Add(newClient);  
+            context.Users.Add(newClient);
+            await context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+        }
+        public async Task AddDailyLogAsync(DailyLog newDaylog)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var userExists = await context.Users.AnyAsync(u => u.Id == newDaylog.UserId);
+            if (!userExists)
+            {
+                throw new KeyNotFoundException(
+                    $"Cannot add daily log: no user with Id {newDaylog.UserId} exists.");
+            }
+
+            var existing = await context.DailyLog.FirstOrDefaultAsync(
+                l => l.UserId == newDaylog.UserId && l.Date == newDaylog.Date);
+
+            if (existing is null)
+            {
+                context.DailyLog.Add(newDaylog);
+            }
+            else
+            {
+                existing.Weight = newDaylog.Weight;
+                existing.ConsumedCalories = newDaylog.ConsumedCalories;
+                existing.ConsumedProteins = newDaylog.ConsumedProteins;
+                existing.ConsumedCarbs = newDaylog.ConsumedCarbs;
+                existing.ConsumedFats = newDaylog.ConsumedFats;
+            }
+
+            await context.SaveChangesAsync();
+
         }
 
-
-        public async Task AddDaily(DailyLog newDaylog)
+        public async Task<User?> GetClientByIdAsync(int id)
         {
-            _context.DailyLog.Add(newDaylog);
-            await _context.SaveChangesAsync();
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users
+                .Include(u => u.DailyLogs)
+                .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
         }
     }
 }
