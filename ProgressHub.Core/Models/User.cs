@@ -1,12 +1,16 @@
 ﻿using ProgressHub.Core.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.Xml.Linq;
 
 
 namespace ProgressHub.Core.Models
 {
+
     public class User
     {
 
         //Basic profile informations
+
         public int Id { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
@@ -29,8 +33,9 @@ namespace ProgressHub.Core.Models
         public int TargetFatsGrams { get; set; }
 
         // Propojení na záznamy (vazba 1:N)
-        //public List<DailyLog> DailyLogs { get; set; } = new();
-
+        
+        
+        public List<DailyLog> DailyLogs { get; set; } = new();
 
 
         public int GetAge()

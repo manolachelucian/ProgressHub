@@ -1,0 +1,16 @@
+﻿using ProgressHub.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ProgressHub.Core.Interfaces
+{
+    public interface IUserService
+    {
+        Task<List<User>> GetAllClientsAsync();
+        Task AddClientAsync(User newClient);
+
+    }
+}
