@@ -1,4 +1,5 @@
 ﻿using ProgressHub.Core.Enums;
+using ProgressHub.Core.Validation;
 using System.ComponentModel.DataAnnotations;
 using System.Xml.Linq;
 
@@ -30,11 +31,17 @@ namespace ProgressHub.Core.Models
         public string PasswordHash { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public UserRole UserRole { get; set; } = UserRole.Client;
+        public Gender Gender { get; set; } = Gender.Male;
+
+        // goal for client
+        public FitnessGoal FitnessGoal { get; set; } = FitnessGoal.None;
 
         // Physical parameters for BMI etc.
 
         [Range(50, 300, ErrorMessage = "Height must be between 50 and 300 cm.")]
         public int HeightInCm { get; set; }
+
+        [NotFutureDate(ErrorMessage = "Date of birth cannot be in the future.")]
         public DateOnly DateOfBirth { get; set; }
 
 
@@ -53,7 +60,7 @@ namespace ProgressHub.Core.Models
         public int TargetFatsGrams { get; set; }
 
         // 1:N relation to logs
-        public List<DailyLog> DailyLogs { get; set; } = new();
+        public List<DailyLog> DailyLogs { get; set; } =new();
 
         //Method for get age
         public int GetAge()

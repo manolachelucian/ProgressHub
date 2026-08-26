@@ -1,29 +1,29 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using ProgressHub.Core.Enums;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
-using ProgressHub.Data;
 using ProgressHub.Data.Services;
-using Xunit;
+using ProgressHub.Tests.Common;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-
-namespace ProgressHub.Tests.DataTests
+namespace ProgressHub.Tests.Services.UserServiceTests
 {
-    public class UserServiceTests 
+    public class AddClientTests
     {
 
-        private static IDbContextFactory<ProgressHubDbContext> CreateFactory()
-        {
-            var services = new ServiceCollection();
-            services.AddDbContextFactory<ProgressHubDbContext>(options =>
-                options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
-
-            return services.BuildServiceProvider()
-                .GetRequiredService<IDbContextFactory<ProgressHubDbContext>>();
-        }
-
+        /// <summary>
+        /// Ověřuje, že metoda <see cref="UserService.AddClientAsync"/> správně uloží nového klienta
+        /// a vynutí roli <see cref="UserRole.Client"/> bez ohledu na původně zadanou roli.
+        /// </summary>
+        /// <param name="firstName">Křestní jméno klienta.</param>
+        /// <param name="lastName">Příjmení klienta.</param>
+        /// <param name="email">Emailová adresa klienta.</param>
+        /// <param name="targetCalories">Cílový denní kalorický příjem.</param>
         [Theory]
         [InlineData("Alice", "Smith", "alice@example.com", 1800)]
         [InlineData("Bob", "Jones", "bob@example.com", 2600)]
@@ -31,8 +31,8 @@ namespace ProgressHub.Tests.DataTests
             string firstName, string lastName, string email, int targetCalories)
         {
             //arrange
-            var factory = CreateFactory();
-            IUserService userService =  new UserService(factory);
+            var factory = TestDbContextFactory.Create();
+            IUserService userService = new UserService(factory);
 
             var expectedClient = new User
             {
@@ -53,80 +53,29 @@ namespace ProgressHub.Tests.DataTests
 
             stored.Should().BeEquivalentTo(expectedClient, options => options.Excluding(u => u.Id)
             .Excluding(u => u.UserRole));
-             
+
             stored.UserRole.Should().Be(UserRole.Client);
 
         }
 
-        [Fact]
-        public async Task GetAllClientsAsync_ShouldReturnOnlyClients_WithDailyLogsIncluded()
-        {
-            var factory = CreateFactory();
 
-            await using (var seed = await factory.CreateDbContextAsync())
-            {
-                seed.Users.AddRange(
-                    new User
-                    {
-                        FirstName = "Client",
-                        LastName = "One",
-                        Email = "c1@x.com",
-                        UserRole = UserRole.Client,
-                        TargetCalories = 2000,
-                        DailyLogs = new List<DailyLog>
-                        {
-                            new() { Date = new DateOnly(2026, 1, 1), Weight = 80, ConsumedCalories = 2000 }
-                        }
-                    },
-                    new User
-                    {
-                        FirstName = "Coach",
-                        LastName = "Two",
-                        Email = "coach@x.com",
-                        UserRole = UserRole.Coach,
-                        TargetCalories = 0
-                    });
-                await seed.SaveChangesAsync();
-            }
 
-            var sut = new UserService(factory);
-            var clients = await sut.GetAllClientsAsync();
-
-            clients.Should().ContainSingle(u => u.Email == "c1@x.com");
-            clients.Single().DailyLogs.Should().ContainSingle();
-        }
-
-        [Fact]
-        public async Task GetClientByIdAsync_ShouldReturnNull_WhenUserIsNotClientRole()
-        {
-            var factory = CreateFactory();
-            int coachId;
-
-            await using (var seed = await factory.CreateDbContextAsync())
-            {
-                var coach = new User
-                {
-                    FirstName = "Coach", LastName = "Only", Email = "coach@x.com",
-                    UserRole = UserRole.Coach, TargetCalories = 0
-                };
-                seed.Users.Add(coach);
-                await seed.SaveChangesAsync();
-                coachId = coach.Id;
-            }
-
-            IUserService userService = new UserService(factory);
-            var result = await userService.GetClientByIdAsync(coachId);
-
-            result.Should().BeNull();
-        }
-
+        /// <summary>
+        /// Ověřuje, že metoda <see cref="UserService.AddDailyLogAsync"/> správně vytvoří a vloží nový záznam,
+        /// pokud pro daného klienta a datum ještě žádný log neexistuje.
+        /// </summary>
+        /// <param name="weight">Váha klienta v kg.</param>
+        /// <param name="calories">Zkonzumované kalorie.</param>
+        /// <param name="proteins">Příjem bílkovin v gramech.</param>
+        /// <param name="carbs">Příjem sacharidů v gramech.</param>
+        /// <param name="fats">Příjem tuků v gramech.</param>
         [Theory]
         [InlineData(70.5, 2000, 150, 200, 60)]
         [InlineData(85.2, 2600, 180, 260, 80)]
         public async Task AddDailyLogAsync_ShouldInsert_WhenNoExistingLogForDate(
             double weight, int calories, int proteins, int carbs, int fats)
         {
-            var factory = CreateFactory();
+            var factory = TestDbContextFactory.Create();
             var client = new User
             {
                 FirstName = "Client",
@@ -162,11 +111,14 @@ namespace ProgressHub.Tests.DataTests
             stored.Should().BeEquivalentTo(log, options => options.Excluding(l => l.Id));
         }
 
-
+        /// <summary>
+        /// Ověřuje, že metoda <see cref="UserService.AddDailyLogAsync"/> vyhodí výjimku <see cref="KeyNotFoundException"/>,
+        /// pokud je zadáno ID uživatele, které v databázi neexistuje.
+        /// </summary>
         [Fact]
         public async Task AddDailyLogAsync_ShouldThrowKeyNotFoundException_WhenUserDoesNotExist()
         {
-            var factory = CreateFactory();
+            var factory = TestDbContextFactory.Create();
             var sut = new UserService(factory);
 
             var log = new DailyLog
@@ -185,12 +137,14 @@ namespace ProgressHub.Tests.DataTests
             await act.Should().ThrowAsync<KeyNotFoundException>();
         }
 
-        
-
+        /// <summary>
+        /// Ověřuje upsert chování: při opakovaném volání <see cref="UserService.AddDailyLogAsync"/>
+        /// pro stejného uživatele a stejné datum dojde k aktualizaci stávajícího záznamu namísto vytvoření duplicity.
+        /// </summary>
         [Fact]
         public async Task AddDailyLogAsync_ShouldUpdateExisting_WhenSameUserAndDate_NotDuplicate()
         {
-            var factory = CreateFactory();
+            var factory = TestDbContextFactory.Create();
             var client = new User
             {
                 FirstName = "Client",
@@ -237,8 +191,6 @@ namespace ProgressHub.Tests.DataTests
             logs.Single().Weight.Should().Be(79.5);
             logs.Single().ConsumedCalories.Should().Be(2100);
         }
-
-
 
     }
 }

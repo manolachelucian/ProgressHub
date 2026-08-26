@@ -15,6 +15,55 @@ namespace ProgressHub.Data.Services
             _contextFactory = contextFactory;
         }
 
+
+        //remove client method
+        public async Task RemoveClientAsync(int clientId)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var client = await context.Users
+                .Include(u => u.DailyLogs)
+                .FirstOrDefaultAsync(u => u.Id == clientId && u.UserRole == UserRole.Client);
+
+            if (client is null)
+            {
+                throw new KeyNotFoundException($"Client with ID {clientId} was not found.");
+            }
+
+            context.Users.Remove(client);
+            await context.SaveChangesAsync();
+        }
+
+
+        public async Task UpdateClientAsync(User updatedClient)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Id == updatedClient.Id && u.UserRole == UserRole.Client);
+
+            if(existingUser is null)
+            {
+
+                throw new KeyNotFoundException($"Client with ID {updatedClient.Id} was not found.");
+            }
+
+            // Aktualizace profilových údajů
+            existingUser.FirstName = updatedClient.FirstName;
+            existingUser.LastName = updatedClient.LastName;
+            existingUser.Email = updatedClient.Email;
+            existingUser.DateOfBirth = updatedClient.DateOfBirth;
+            existingUser.Gender = updatedClient.Gender;
+            existingUser.FitnessGoal = updatedClient.FitnessGoal;
+            existingUser.HeightInCm = updatedClient.HeightInCm;
+
+            // Aktualizace makro cílů
+            existingUser.TargetCalories = updatedClient.TargetCalories;
+            existingUser.TargetProteinGrams = updatedClient.TargetProteinGrams;
+            existingUser.TargetCarbsGrams = updatedClient.TargetCarbsGrams;
+            existingUser.TargetFatsGrams = updatedClient.TargetFatsGrams;
+
+            await context.SaveChangesAsync();
+        }
+
+
         public async Task<List<User>> GetAllClientsAsync()
         {
             await using var context = await _contextFactory.CreateDbContextAsync();

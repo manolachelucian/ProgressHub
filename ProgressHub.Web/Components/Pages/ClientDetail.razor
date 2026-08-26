@@ -1,8 +1,10 @@
 ﻿@page "/clients/{Id:int}"
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
+@using ProgressHub.Core.Enums;
 @inject IUserService UserService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Client Detail</PageTitle>
 
@@ -17,9 +19,21 @@ else if (_client is null)
 }
 else
 {
-    <button class="btn btn-link mb-2 px-0" @onclick="BackToList">&larr; Back to Clients</button>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn btn-link px-0 text-decoration-none" @onclick="BackToList">&larr; Back to Clients</button>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-2" @onclick="OpenEditProfileModal">
+                Edit Profile
+            </button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="HandleDeleteClient" disabled="@_isDeleting">
+                @(_isDeleting ? "Deleting..." : "Delete Client")
+            </button>
+        </div>
+    </div>
+
     <h1>@_client.GetFullName()</h1>
     <p class="text-muted">@_client.Email</p>
+   
 
     <h4>Biometrics</h4>
     <table class="table table-sm w-auto">
@@ -27,7 +41,9 @@ else
             <tr><th>Age</th><td>@_client.GetAge()</td></tr>
             <tr><th>Height</th><td>@_client.HeightInCm cm</td></tr>
             <tr><th>Current Weight</th><td>@GetLatestWeightDisplay()</td></tr>
+            <tr><th>Goal</th><td><span>@_client.FitnessGoal</span></td></tr>
             <tr><th>BMI</th><td>@GetBmiDisplay()</td></tr>
+            <tr><th>Gender</th><td>@_client.Gender</td></tr>
         </tbody>
     </table>
 
@@ -84,6 +100,107 @@ else
     }
 }
 
+@* --- Modal: Úprava profilu klienta --- *@
+@if (_showEditProfileModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Client Profile</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditProfileModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="_editClientModel" OnValidSubmit="HandleUpdateClient">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <InputText class="form-control" @bind-Value="_editClientModel.FirstName" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <InputText class="form-control" @bind-Value="_editClientModel.LastName" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="_editClientModel.Email" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <InputDate class="form-control" @bind-Value="_editClientModel.DateOfBirth" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Gender</label>
+                                <InputSelect class="form-select" @bind-Value="_editClientModel.Gender">
+                                    <option value="@Gender.Male">Male</option>
+                                    <option value="@Gender.Female">Female</option>
+                                    <option value="@Gender.Other">Other</option>
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Height (cm)</label>
+                                <InputNumber class="form-control" @bind-Value="_editClientModel.HeightInCm" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fitness Goal</label>
+                            <InputSelect class="form-select" @bind-Value="_editClientModel.FitnessGoal">
+                                <option value="@FitnessGoal.WeightLoss">Weight Loss</option>
+                                <option value="@FitnessGoal.MuscleGain">Muscle Gain</option>
+                                <option value="@FitnessGoal.Maintenance">Maintenance</option>
+                                <option value="@FitnessGoal.Recomposition">Recomposition</option>
+                                <option value="@FitnessGoal.Endurance">Endurance</option>
+                            </InputSelect>
+                        </div>
+
+                        <hr />
+                        <h6>Target Macros</h6>
+
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Calories (kcal)</label>
+                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetCalories" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Protein (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetProteinGrams" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Carbs (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetCarbsGrams" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Fats (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetFatsGrams" />
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_profileError))
+                        {
+                            <div class="alert alert-danger">@_profileError</div>
+                        }
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseEditProfileModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                @(_isSubmitting ? "Saving..." : "Save Changes")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* --- Modal: Pridani logu klienta --- *@
 @if (_showAddLogModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -160,10 +277,17 @@ else
     public int Id { get; set; }
 
     private User? _client;
-    private bool _isLoading = true;
+    private User _editClientModel = new();
 
+    private bool _isLoading = true;
+    private bool _isDeleting;
+
+    //modal
     private bool _showAddLogModal;
+    private bool _showEditProfileModal;
+
     private bool _isSubmitting;
+    private string? _profileError;
     private string? _submitError;
     private DailyLog _newLog = new();
 
@@ -202,6 +326,56 @@ else
     private void BackToList()
     {
         NavigationManager.NavigateTo("/clients");
+    }
+
+    private void OpenEditProfileModal()
+    {
+        if (_client is null) return;
+
+        // Klonujeme hodnoty, aby se změny neprojevily na stránce před uložením
+        _editClientModel = new User
+        {
+            Id = _client.Id,
+            FirstName = _client.FirstName,
+            LastName = _client.LastName,
+            Email = _client.Email,
+            DateOfBirth = _client.DateOfBirth,
+            Gender = _client.Gender,
+            FitnessGoal = _client.FitnessGoal,
+            HeightInCm = _client.HeightInCm,
+            TargetCalories = _client.TargetCalories,
+            TargetProteinGrams = _client.TargetProteinGrams,
+            TargetCarbsGrams = _client.TargetCarbsGrams,
+            TargetFatsGrams = _client.TargetFatsGrams,
+            UserRole = _client.UserRole
+        };
+
+        _profileError = null;
+        _showEditProfileModal = true;
+    }
+    private void CloseEditProfileModal()
+    {
+        _showEditProfileModal = false;
+    }
+    private async Task HandleUpdateClient()
+    {
+        _isSubmitting = true;
+        _profileError = null;
+
+        try
+        {
+            await UserService.UpdateClientAsync(_editClientModel);
+            _showEditProfileModal = false;
+            await LoadClientAsync();
+        }
+        catch (Exception)
+        {
+            _profileError = "Failed to update profile. Please check inputs and try again.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 
     private void OpenAddLogModal()
@@ -244,4 +418,31 @@ else
             _isSubmitting = false;
         }
     }
+
+    private async Task HandleDeleteClient(){
+    if (_client is null) return;
+
+    var confirmed = await JSRuntime.InvokeAsync<bool>(
+        "confirm", 
+        $"Are you sure you want to permanently delete {_client.GetFullName()} and all their recorded logs?");
+
+    if (confirmed)
+    {
+        _isDeleting = true;
+        try
+        {
+            await UserService.RemoveClientAsync(_client.Id);
+            NavigationManager.NavigateTo("/clients");
+        }
+        catch (Exception)
+        {
+            _submitError = "Failed to delete client. Please try again.";
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+}
+   
 }

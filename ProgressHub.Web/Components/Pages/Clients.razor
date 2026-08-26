@@ -1,8 +1,10 @@
 ﻿@page "/clients"
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
+@using ProgressHub.Core.Enums
 @inject IUserService UserService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Clients - ProgressHub</PageTitle>
 
@@ -47,6 +49,11 @@ else
                         <button class="btn btn-outline-primary btn-sm" @onclick:stopPropagation="true" @onclick="() => NavigateToDetail(client.Id)">
                             View Detail &rarr;
                         </button>
+                        <button class="btn btn-outline-danger btn-sm"
+                                @onclick:stopPropagation="true"
+                                @onclick="() => HandleDeleteClient(client)">
+                            Delete
+                        </button>
                     </td>
                 </tr>
             }
@@ -79,10 +86,35 @@ else
                                 <InputText class="form-control" @bind-Value="_newClient.LastName" />
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <InputText class="form-control" @bind-Value="_newClient.Email" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <InputDate class="form-control" @bind-Value="_newClient.DateOfBirth" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Gender</label>
+                                <InputSelect class="form-select" @bind-Value="_newClient.Gender">
+                                    <option value="@Gender.Male">Male</option>
+                                    <option value="@Gender.Female">Female</option>
+                                    <option value="@Gender.Other">Other</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fitness Goal</label>
+                            <InputSelect class="form-select" @bind-Value="_newClient.FitnessGoal">
+                                <option value="@FitnessGoal.WeightLoss">Weight Loss (Hubnutí)</option>
+                                <option value="@FitnessGoal.MuscleGain">Muscle Gain (Nabírání svalů)</option>
+                                <option value="@FitnessGoal.Maintenance">Maintenance (Udržování)</option>
+                                <option value="@FitnessGoal.Recomposition">Recomposition (Rekompozice)</option>
+                                <option value="@FitnessGoal.Endurance">Endurance (Vytrvalost)</option>
+                            </InputSelect>
                         </div>
 
                         <div class="row">
@@ -158,7 +190,8 @@ else
     {
         _newClient = new User
         {
-            DateOfBirth = new DateOnly(2000, 1, 1),
+            DateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25)),
+            Gender = Gender.Male,
             HeightInCm = 175,
             TargetCalories = 2000
         };
@@ -182,6 +215,18 @@ else
         finally
         {
             _isSubmitting = false;
+        }
+    }
+    private async Task HandleDeleteClient(User client)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Are you sure you want to delete client {client.GetFullName()} and all their logs?");
+
+        if (confirmed)
+        {
+            await UserService.RemoveClientAsync(client.Id);
+            await LoadClientsAsync(); // Znovu načte aktuální seznam klientů
         }
     }
 }
