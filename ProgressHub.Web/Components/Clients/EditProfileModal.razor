@@ -1,0 +1,110 @@
+﻿@using ProgressHub.Core.Enums
+@using ProgressHub.Core.Models
+
+@if (IsOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Client Profile</h5>
+                    <button type="button" class="btn-close" @onclick="OnClose"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="Model" OnValidSubmit="OnSave">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <InputText class="form-control" @bind-Value="Model.FirstName" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <InputText class="form-control" @bind-Value="Model.LastName" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="Model.Email" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <InputDate class="form-control" @bind-Value="Model.DateOfBirth" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Gender</label>
+                                <InputSelect class="form-select" @bind-Value="Model.Gender">
+                                    <option value="@Gender.Male">Male</option>
+                                    <option value="@Gender.Female">Female</option>
+                                    <option value="@Gender.Other">Other</option>
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Height (cm)</label>
+                                <InputNumber class="form-control" @bind-Value="Model.HeightInCm" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fitness Goal</label>
+                            <InputSelect class="form-select" @bind-Value="Model.FitnessGoal">
+                                <option value="@FitnessGoal.WeightLoss">Weight Loss</option>
+                                <option value="@FitnessGoal.MuscleGain">Muscle Gain</option>
+                                <option value="@FitnessGoal.Maintenance">Maintenance</option>
+                                <option value="@FitnessGoal.Recomposition">Recomposition</option>
+                                <option value="@FitnessGoal.Endurance">Endurance</option>
+                            </InputSelect>
+                        </div>
+
+                        <hr />
+                        <h6>Target Macros</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Calories (kcal)</label>
+                                <InputNumber class="form-control" @bind-Value="Model.TargetCalories" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Protein (g)</label>
+                                <InputNumber class="form-control" @bind-Value="Model.TargetProteinGrams" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Carbs (g)</label>
+                                <InputNumber class="form-control" @bind-Value="Model.TargetCarbsGrams" />
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Fats (g)</label>
+                                <InputNumber class="form-control" @bind-Value="Model.TargetFatsGrams" />
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            <div class="alert alert-danger">@ErrorMessage</div>
+                        }
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@IsSubmitting">
+                                @(IsSubmitting ? "Saving..." : "Save Changes")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@code {
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter, EditorRequired] public User Model { get; set; } = null!;
+    [Parameter] public bool IsSubmitting { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}

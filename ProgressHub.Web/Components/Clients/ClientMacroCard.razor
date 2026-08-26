@@ -1,0 +1,22 @@
+﻿@using ProgressHub.Core.Models;
+
+
+<div class="card h-100 shadow-sm border-0">
+    <div class="card-header bg-light"><strong>Daily Macro Targets</strong></div>
+    <div class="card-body">
+        <table class="table table-sm mb-0">
+            <tbody>
+                <tr><th>Calories</th><td><strong>@Client.TargetCalories</strong> kcal</td></tr>
+                <tr><th>Protein</th><td>@Client.TargetProteinGrams g</td></tr>
+                <tr><th>Carbs</th><td>@Client.TargetCarbsGrams g</td></tr>
+                <tr><th>Fats</th><td>@Client.TargetFatsGrams g</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+@code {
+    [Parameter, EditorRequired] public User Client { get; set; } = null!;
+
+}

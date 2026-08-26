@@ -4,6 +4,7 @@
 @using ProgressHub.Core.Enums;
 @inject IUserService UserService
 @inject NavigationManager NavigationManager
+@using ProgressHub.Web.Components.Clients
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Client Detail</PageTitle>
@@ -22,265 +23,52 @@ else
     <div class="d-flex justify-content-between align-items-center mb-3">
         <button class="btn btn-link px-0 text-decoration-none" @onclick="BackToList">&larr; Back to Clients</button>
         <div>
-            <button class="btn btn-outline-secondary btn-sm me-2" @onclick="OpenEditProfileModal">
-                Edit Profile
-            </button>
+            <button class="btn btn-outline-secondary btn-sm me-2" @onclick="OpenEditProfileModal">Edit Profile</button>
             <button class="btn btn-outline-danger btn-sm" @onclick="HandleDeleteClient" disabled="@_isDeleting">
                 @(_isDeleting ? "Deleting..." : "Delete Client")
             </button>
         </div>
     </div>
 
-    <h1>@_client.GetFullName()</h1>
-    <p class="text-muted">@_client.Email</p>
-   
-
-    <h4>Biometrics</h4>
-    <table class="table table-sm w-auto">
-        <tbody>
-            <tr><th>Age</th><td>@_client.GetAge()</td></tr>
-            <tr><th>Height</th><td>@_client.HeightInCm cm</td></tr>
-            <tr><th>Current Weight</th><td>@GetLatestWeightDisplay()</td></tr>
-            <tr><th>Goal</th><td><span>@_client.FitnessGoal</span></td></tr>
-            <tr><th>BMI</th><td>@GetBmiDisplay()</td></tr>
-            <tr><th>Gender</th><td>@_client.Gender</td></tr>
-        </tbody>
-    </table>
-
-    <h4>Macro Targets</h4>
-    <table class="table table-sm w-auto">
-        <tbody>
-            <tr><th>Calories</th><td>@_client.TargetCalories kcal</td></tr>
-            <tr><th>Protein</th><td>@_client.TargetProteinGrams g</td></tr>
-            <tr><th>Carbs</th><td>@_client.TargetCarbsGrams g</td></tr>
-            <tr><th>Fats</th><td>@_client.TargetFatsGrams g</td></tr>
-        </tbody>
-    </table>
-
-    <div class="d-flex justify-content-between align-items-center">
-        <h4>Daily Log History</h4>
-        <button class="btn btn-primary mb-2" @onclick="OpenAddLogModal">
-            + Add Daily Log
-        </button>
+    <div class="mb-4">
+        <h1 class="mb-0">@_client.GetFullName()</h1>
+        <p class="text-muted">@_client.Email</p>
     </div>
 
-    @if (_client.DailyLogs.Count == 0)
-    {
-        <p>No logs recorded yet.</p>
-    }
-    else
-    {
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Weight (kg)</th>
-                    <th>Calories</th>
-                    <th>Protein (g)</th>
-                    <th>Carbs (g)</th>
-                    <th>Fats (g)</th>
-                    <th>Note</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var log in _client.DailyLogs.OrderByDescending(l => l.Date))
-                {
-                    <tr>
-                        <td>@log.Date.ToString("yyyy-MM-dd")</td>
-                        <td>@log.Weight.ToString("0.0")</td>
-                        <td>@log.ConsumedCalories</td>
-                        <td>@log.ConsumedProteins</td>
-                        <td>@log.ConsumedCarbs</td>
-                        <td>@log.ConsumedFats</td>
-                        <td>@(log.Note ?? "—")</td>
-                        <!-- 2. Akční tlačítka pro každý záznam -->
-                        <td class="text-end">
-                            <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OpenEditLogModal(log)">
-                                Edit
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => HandleDeleteLog(log)">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
-}
-
-@* --- Modal: Úprava profilu klienta --- *@
-@if (_showEditProfileModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Client Profile</h5>
-                    <button type="button" class="btn-close" @onclick="CloseEditProfileModal"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="_editClientModel" OnValidSubmit="HandleUpdateClient">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">First Name</label>
-                                <InputText class="form-control" @bind-Value="_editClientModel.FirstName" />
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Last Name</label>
-                                <InputText class="form-control" @bind-Value="_editClientModel.LastName" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <InputText class="form-control" @bind-Value="_editClientModel.Email" />
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Date of Birth</label>
-                                <InputDate class="form-control" @bind-Value="_editClientModel.DateOfBirth" />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Gender</label>
-                                <InputSelect class="form-select" @bind-Value="_editClientModel.Gender">
-                                    <option value="@Gender.Male">Male</option>
-                                    <option value="@Gender.Female">Female</option>
-                                    <option value="@Gender.Other">Other</option>
-                                </InputSelect>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Height (cm)</label>
-                                <InputNumber class="form-control" @bind-Value="_editClientModel.HeightInCm" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Fitness Goal</label>
-                            <InputSelect class="form-select" @bind-Value="_editClientModel.FitnessGoal">
-                                <option value="@FitnessGoal.WeightLoss">Weight Loss</option>
-                                <option value="@FitnessGoal.MuscleGain">Muscle Gain</option>
-                                <option value="@FitnessGoal.Maintenance">Maintenance</option>
-                                <option value="@FitnessGoal.Recomposition">Recomposition</option>
-                                <option value="@FitnessGoal.Endurance">Endurance</option>
-                            </InputSelect>
-                        </div>
-
-                        <hr />
-                        <h6>Target Macros</h6>
-
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Calories (kcal)</label>
-                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetCalories" />
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Protein (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetProteinGrams" />
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Carbs (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetCarbsGrams" />
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Fats (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_editClientModel.TargetFatsGrams" />
-                            </div>
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(_profileError))
-                        {
-                            <div class="alert alert-danger">@_profileError</div>
-                        }
-
-                        <div class="modal-footer px-0 pb-0">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseEditProfileModal">Cancel</button>
-                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
-                                @(_isSubmitting ? "Saving..." : "Save Changes")
-                            </button>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <ClientBiometricsCard Client="_client" LatestLog="GetLatestLog()" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <ClientMacroCard Client="_client" />
         </div>
     </div>
-}
-@* --- Modal: Přidání / Úprava denního záznamu --- *@
-@if (_showAddLogModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@(_isEditingLog ? "Edit Daily Log" : "Add Daily Log")</h5>
-                    <button type="button" class="btn-close" @onclick="CloseAddLogModal"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="_newLog" OnValidSubmit="HandleSaveLog">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
 
-                        <div class="mb-3">
-                            <label class="form-label">Date</label>
-                            <InputDate class="form-control" @bind-Value="_newLog.Date" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Weight (kg)</label>
-                            <InputNumber class="form-control" @bind-Value="_newLog.Weight" />
-                        </div>
-
-                        <div class="row">
-                            <div class="col mb-3">
-                                <label class="form-label">Calories</label>
-                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedCalories" />
-                            </div>
-                            <div class="col mb-3">
-                                <label class="form-label">Protein (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedProteins" />
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col mb-3">
-                                <label class="form-label">Carbs (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedCarbs" />
-                            </div>
-                            <div class="col mb-3">
-                                <label class="form-label">Fats (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_newLog.ConsumedFats" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Note (optional)</label>
-                            <InputTextArea class="form-control" rows="3" @bind-Value="_newLog.Note" />
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(_submitError))
-                        {
-                            <div class="alert alert-danger">@_submitError</div>
-                        }
-
-                        <div class="modal-footer px-0 pb-0">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseAddLogModal">Cancel</button>
-                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
-                                @(_isSubmitting ? "Saving..." : (_isEditingLog ? "Save Changes" : "Save Log"))
-                            </button>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4 class="mb-0">Daily Log History</h4>
+        <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
     </div>
+
+    <DailyLogsTable Logs="_client.DailyLogs" OnEdit="OpenEditLogModal" OnDelete="HandleDeleteLog" />
+
+    <EditProfileModal IsOpen="_showEditProfileModal"
+                      Model="_editClientModel"
+                      IsSubmitting="_isSubmitting"
+                      ErrorMessage="@_profileError"
+                      OnSave="HandleUpdateClient"
+                      OnClose="CloseEditProfileModal" />
+
+    <DailyLogModal IsOpen="_showAddLogModal"
+                   IsEditing="_isEditingLog"
+                   Model="_newLog"
+                   IsSubmitting="_isSubmitting"
+                   ErrorMessage="@_submitError"
+                   OnSave="HandleSaveLog"
+                   OnClose="CloseAddLogModal" />
 }
+
 @code {
-    [Parameter]
-    public int Id { get; set; }
+    [Parameter] public int Id { get; set; }
 
     private User? _client;
     private User _editClientModel = new();
@@ -288,19 +76,14 @@ else
 
     private bool _isLoading = true;
     private bool _isDeleting;
-
     private bool _showAddLogModal;
     private bool _showEditProfileModal;
     private bool _isEditingLog;
-
     private bool _isSubmitting;
     private string? _profileError;
     private string? _submitError;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadClientAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadClientAsync();
 
     private async Task LoadClientAsync()
     {
@@ -311,34 +94,12 @@ else
     private DailyLog? GetLatestLog() =>
         _client?.DailyLogs.OrderByDescending(l => l.Date).FirstOrDefault();
 
-    private string GetLatestWeightDisplay()
-    {
-        var latest = GetLatestLog();
-        return latest is null ? "—" : $"{latest.Weight:0.0} kg";
-    }
-
-    private string GetBmiDisplay()
-    {
-        var latest = GetLatestLog();
-        if (latest is null || _client is null)
-        {
-            return "—";
-        }
-
-        var bmi = _client.CalculateBmi(latest.Weight);
-        return bmi is null ? "—" : bmi.Value.ToString("0.0");
-    }
-
-    private void BackToList()
-    {
-        NavigationManager.NavigateTo("/clients");
-    }
+    private void BackToList() => NavigationManager.NavigateTo("/clients");
 
     private void OpenEditProfileModal()
     {
         if (_client is null) return;
 
-        // Klonujeme hodnoty, aby se změny neprojevily na stránce před uložením
         _editClientModel = new User
         {
             Id = _client.Id,
@@ -359,10 +120,9 @@ else
         _profileError = null;
         _showEditProfileModal = true;
     }
-    private void CloseEditProfileModal()
-    {
-        _showEditProfileModal = false;
-    }
+
+    private void CloseEditProfileModal() => _showEditProfileModal = false;
+
     private async Task HandleUpdateClient()
     {
         _isSubmitting = true;
@@ -386,6 +146,7 @@ else
 
     private void OpenAddLogModal()
     {
+        _isEditingLog = false;
         _newLog = new DailyLog
         {
             UserId = Id,
@@ -395,54 +156,27 @@ else
         _showAddLogModal = true;
     }
 
-    private void CloseAddLogModal()
+    private void OpenEditLogModal(DailyLog log)
     {
-        _showAddLogModal = false;
-    }
-
-    private async Task HandleAddLog()
-    {
-        _isSubmitting = true;
+        _isEditingLog = true;
+        _newLog = new DailyLog
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            Date = log.Date,
+            Weight = log.Weight,
+            ConsumedCalories = log.ConsumedCalories,
+            ConsumedProteins = log.ConsumedProteins,
+            ConsumedCarbs = log.ConsumedCarbs,
+            ConsumedFats = log.ConsumedFats,
+            Note = log.Note
+        };
         _submitError = null;
-
-        try
-        {
-            await UserService.AddDailyLogAsync(_newLog);
-            _showAddLogModal = false;
-            await LoadClientAsync(); // reload so the new/updated log appears in the table
-        }
-        catch (KeyNotFoundException)
-        {
-            _submitError = "This client no longer exists.";
-        }
-        catch (Exception)
-        {
-            _submitError = "Failed to save log. Please try again.";
-        }
-        finally
-        {
-            _isSubmitting = false;
-        }
+        _showAddLogModal = true;
     }
-    private async Task HandleDeleteLog(DailyLog log)
-    {
-        var confirmed = await JSRuntime.InvokeAsync<bool>(
-            "confirm",
-            $"Are you sure you want to delete the log for {log.Date:yyyy-MM-dd}?");
 
-        if (confirmed)
-        {
-            try
-            {
-                await UserService.RemoveDailyLogAsync(log.Id);
-                await LoadClientAsync();
-            }
-            catch (Exception)
-            {
-                _submitError = "Failed to delete log. Please try again.";
-            }
-        }
-    }
+    private void CloseAddLogModal() => _showAddLogModal = false;
+
     private async Task HandleSaveLog()
     {
         _isSubmitting = true;
@@ -476,49 +210,52 @@ else
         }
     }
 
-    private void OpenEditLogModal(DailyLog log)
+    private async Task HandleDeleteLog(DailyLog log)
     {
-        _isEditingLog = true;
-        _newLog = new DailyLog
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Are you sure you want to delete the log for {log.Date:yyyy-MM-dd}?");
+
+        if (confirmed)
         {
-            Id = log.Id,
-            UserId = log.UserId,
-            Date = log.Date,
-            Weight = log.Weight,
-            ConsumedCalories = log.ConsumedCalories,
-            ConsumedProteins = log.ConsumedProteins,
-            ConsumedCarbs = log.ConsumedCarbs,
-            ConsumedFats = log.ConsumedFats,
-            Note = log.Note
-        };
-        _submitError = null;
-        _showAddLogModal = true;
+            try
+            {
+                await UserService.RemoveDailyLogAsync(log.Id);
+                await LoadClientAsync();
+            }
+            catch (Exception)
+            {
+                _submitError = "Failed to delete log. Please try again.";
+            }
+        }
     }
 
-    private async Task HandleDeleteClient(){
-    if (_client is null) return;
-
-    var confirmed = await JSRuntime.InvokeAsync<bool>(
-        "confirm", 
-        $"Are you sure you want to permanently delete {_client.GetFullName()} and all their recorded logs?");
-
-    if (confirmed)
+    private async Task HandleDeleteClient()
     {
-        _isDeleting = true;
-        try
+        if (_client is null) return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Are you sure you want to permanently delete {_client.GetFullName()} and all their recorded logs?");
+
+        if (confirmed)
         {
-            await UserService.RemoveClientAsync(_client.Id);
-            NavigationManager.NavigateTo("/clients");
-        }
-        catch (Exception)
-        {
-            _submitError = "Failed to delete client. Please try again.";
-        }
-        finally
-        {
-            _isDeleting = false;
+            _isDeleting = true;
+            try
+            {
+                await UserService.RemoveClientAsync(_client.Id);
+                NavigationManager.NavigateTo("/clients");
+            }
+            catch (Exception)
+            {
+                _submitError = "Failed to delete client. Please try again.";
+            }
+            finally
+            {
+                _isDeleting = false;
+            }
         }
     }
 }
+
    
-}

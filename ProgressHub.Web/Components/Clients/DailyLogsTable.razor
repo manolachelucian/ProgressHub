@@ -1,0 +1,48 @@
+﻿@using ProgressHub.Core.Models
+
+@if(Logs.Count == 0)
+{
+    <div class="alert alert-info">No logs recorded yet.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Weight (kg)</th>
+                    <th>Calories</th>
+                    <th>Protein (g)</th>
+                    <th>Carbs (g)</th>
+                    <th>Fats (g)</th>
+                    <th>Note</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Logs.OrderByDescending(l => l.Date))
+                {
+                    <tr>
+                        <td>@log.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@log.Weight.ToString("0.0")</td>
+                        <td>@log.ConsumedCalories</td>
+                        <td>@log.ConsumedProteins</td>
+                        <td>@log.ConsumedCarbs</td>
+                        <td>@log.ConsumedFats</td>
+                        <td>@(log.Note ?? "—")</td>
+                        <td class="text-end">
+                            <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)"> Edit </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete.InvokeAsync(log)"> Delete </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+@code {
+    [Parameter, EditorRequired] public IReadOnlyCollection<DailyLog> Logs { get; set; } = [];
+    [Parameter] public EventCallback<DailyLog> OnEdit { get; set; }
+    [Parameter] public EventCallback<DailyLog> OnDelete { get; set; }
+}

@@ -1,0 +1,32 @@
+﻿@using ProgressHub.Core.Models;
+
+
+<div class="card h-100 shadow-sm border-0">
+    <div class="card-header bg-light"><strong>Biometrics & Goal</strong></div>
+    <div class="card-body">
+        <table class="table table-sm mb-0">
+            <tbody>
+                <tr><th>Goal</th><td><span class="badge bg-primary">@Client.FitnessGoal</span></td></tr>
+                <tr><th>Gender</th><td>@Client.Gender</td></tr>
+                <tr><th>Age</th><td>@Client.GetAge() yrs (@Client.DateOfBirth.ToString("yyyy-MM-dd"))</td></tr>
+                <tr><th>Height</th><td>@Client.HeightInCm cm</td></tr>
+                <tr><th>Current Weight</th><td>@(LatestLog is null ? "—" : $"{LatestLog.Weight:0.0} kg")</td></tr>
+                <tr><th>BMI</th><td>@(BMIDisplay)</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter, EditorRequired]
+    public User Client { get; set; } = null!;
+
+    [Parameter]
+    public DailyLog? LatestLog { get; set; }
+
+    private string BMIDisplay => LatestLog is null ? " - " : (Client.CalculateBmi(LatestLog.Weight)?.ToString("0.0") ?? " - ");
+
+}
