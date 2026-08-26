@@ -17,5 +17,8 @@ namespace ProgressHub.Core.Interfaces
         Task RemoveClientAsync(int clientId);
 
         Task UpdateClientAsync(User updatedClient);
+
+        Task UpdateDailyLogAsync(DailyLog updatedLog);
+        Task RemoveDailyLogAsync(int dailyLogId);
     }
 }

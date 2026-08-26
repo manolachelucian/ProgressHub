@@ -80,6 +80,7 @@ else
                     <th>Carbs (g)</th>
                     <th>Fats (g)</th>
                     <th>Note</th>
+                    <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -93,6 +94,15 @@ else
                         <td>@log.ConsumedCarbs</td>
                         <td>@log.ConsumedFats</td>
                         <td>@(log.Note ?? "—")</td>
+                        <!-- 2. Akční tlačítka pro každý záznam -->
+                        <td class="text-end">
+                            <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OpenEditLogModal(log)">
+                                Edit
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => HandleDeleteLog(log)">
+                                Delete
+                            </button>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -199,19 +209,18 @@ else
         </div>
     </div>
 }
-
-@* --- Modal: Pridani logu klienta --- *@
+@* --- Modal: Přidání / Úprava denního záznamu --- *@
 @if (_showAddLogModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add Daily Log</h5>
+                    <h5 class="modal-title">@(_isEditingLog ? "Edit Daily Log" : "Add Daily Log")</h5>
                     <button type="button" class="btn-close" @onclick="CloseAddLogModal"></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="_newLog" OnValidSubmit="HandleAddLog">
+                    <EditForm Model="_newLog" OnValidSubmit="HandleSaveLog">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
@@ -258,11 +267,9 @@ else
                         }
 
                         <div class="modal-footer px-0 pb-0">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseAddLogModal">
-                                Cancel
-                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAddLogModal">Cancel</button>
                             <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
-                                @(_isSubmitting ? "Saving..." : "Save Log")
+                                @(_isSubmitting ? "Saving..." : (_isEditingLog ? "Save Changes" : "Save Log"))
                             </button>
                         </div>
                     </EditForm>
@@ -271,25 +278,24 @@ else
         </div>
     </div>
 }
-
 @code {
     [Parameter]
     public int Id { get; set; }
 
     private User? _client;
     private User _editClientModel = new();
+    private DailyLog _newLog = new();
 
     private bool _isLoading = true;
     private bool _isDeleting;
 
-    //modal
     private bool _showAddLogModal;
     private bool _showEditProfileModal;
+    private bool _isEditingLog;
 
     private bool _isSubmitting;
     private string? _profileError;
     private string? _submitError;
-    private DailyLog _newLog = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -417,6 +423,76 @@ else
         {
             _isSubmitting = false;
         }
+    }
+    private async Task HandleDeleteLog(DailyLog log)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "confirm",
+            $"Are you sure you want to delete the log for {log.Date:yyyy-MM-dd}?");
+
+        if (confirmed)
+        {
+            try
+            {
+                await UserService.RemoveDailyLogAsync(log.Id);
+                await LoadClientAsync();
+            }
+            catch (Exception)
+            {
+                _submitError = "Failed to delete log. Please try again.";
+            }
+        }
+    }
+    private async Task HandleSaveLog()
+    {
+        _isSubmitting = true;
+        _submitError = null;
+
+        try
+        {
+            if (_isEditingLog)
+            {
+                await UserService.UpdateDailyLogAsync(_newLog);
+            }
+            else
+            {
+                await UserService.AddDailyLogAsync(_newLog);
+            }
+
+            _showAddLogModal = false;
+            await LoadClientAsync();
+        }
+        catch (KeyNotFoundException)
+        {
+            _submitError = "The record or client was not found.";
+        }
+        catch (Exception)
+        {
+            _submitError = "Failed to save log. Please try again.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void OpenEditLogModal(DailyLog log)
+    {
+        _isEditingLog = true;
+        _newLog = new DailyLog
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            Date = log.Date,
+            Weight = log.Weight,
+            ConsumedCalories = log.ConsumedCalories,
+            ConsumedProteins = log.ConsumedProteins,
+            ConsumedCarbs = log.ConsumedCarbs,
+            ConsumedFats = log.ConsumedFats,
+            Note = log.Note
+        };
+        _submitError = null;
+        _showAddLogModal = true;
     }
 
     private async Task HandleDeleteClient(){

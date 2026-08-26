@@ -121,5 +121,46 @@ namespace ProgressHub.Data.Services
                 .Include(u => u.DailyLogs)
                 .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
         }
+
+
+        public async Task UpdateDailyLogAsync(DailyLog updatedLog)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var existingLog = await context.DailyLog
+                .FirstOrDefaultAsync(l => l.Id == updatedLog.Id);
+
+            if (existingLog is null)
+            {
+                throw new KeyNotFoundException($"DailyLog with ID {updatedLog.Id} was not found.");
+            }
+
+            // Aktualizace hodnot v záznamu
+            existingLog.Date = updatedLog.Date;
+            existingLog.Weight = updatedLog.Weight;
+            existingLog.ConsumedCalories = updatedLog.ConsumedCalories;
+            existingLog.ConsumedProteins = updatedLog.ConsumedProteins;
+            existingLog.ConsumedCarbs = updatedLog.ConsumedCarbs;
+            existingLog.ConsumedFats = updatedLog.ConsumedFats;
+            existingLog.Note = updatedLog.Note;
+
+            await context.SaveChangesAsync();
+        }
+
+        public async Task RemoveDailyLogAsync(int dailyLogId)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var log = await context.DailyLog
+                .FirstOrDefaultAsync(l => l.Id == dailyLogId);
+
+            if (log is null)
+            {
+                throw new KeyNotFoundException($"DailyLog with ID {dailyLogId} was not found.");
+            }
+
+            context.DailyLog.Remove(log);
+            await context.SaveChangesAsync();
+        }
     }
 }
