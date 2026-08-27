@@ -1,0 +1,165 @@
+﻿@using ProgressHub.Core.Enums
+@using ProgressHub.Core.Models
+
+<div class="row g-3 mb-4">
+    <!-- Start Weight -->
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-0 bg-light">
+            <div class="card-body p-3">
+                <div class="text-muted small fw-semibold text-uppercase">Start Weight</div>
+                <div class="fs-4 fw-bold text-dark mt-1">@StartWeightDisplay</div>
+                <div class="text-muted small">@StartDateDisplay</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Weight -->
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-0 bg-light">
+            <div class="card-body p-3">
+                <div class="text-muted small fw-semibold text-uppercase">Current Weight</div>
+                <div class="fs-4 fw-bold text-dark mt-1">@CurrentWeightDisplay</div>
+                <div class="text-muted small">7d avg: @SevenDayAvgDisplay</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Change (Delta) -->
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-0 bg-light">
+            <div class="card-body p-3">
+                <div class="text-muted small fw-semibold text-uppercase">Total Change</div>
+                <div class="fs-4 fw-bold mt-1 @DeltaColorClass">
+                    @DeltaWeightDisplay
+                </div>
+                <div class="small @DeltaColorClass">@DeltaContextText</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logging Streak -->
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-0 bg-light">
+            <div class="card-body p-3">
+                <div class="text-muted small fw-semibold text-uppercase">Log Streak</div>
+                <div class="fs-4 fw-bold text-dark mt-1">
+                    @(CurrentStreak > 0 ? $"🔥 {CurrentStreak} days" : "—")
+                </div>
+                <div class="text-muted small">@TotalLogsDisplay</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public User Client { get; set; } = null!;
+
+    private List<DailyLog> SortedAscLogs =>
+        Client.DailyLogs.OrderBy(l => l.Date).ToList();
+
+    private DailyLog? FirstLog => SortedAscLogs.FirstOrDefault();
+    private DailyLog? LatestLog => SortedAscLogs.LastOrDefault();
+
+    private string StartWeightDisplay =>
+        FirstLog is null ? "—" : $"{FirstLog.Weight:0.0} kg";
+
+    private string StartDateDisplay =>
+        FirstLog is null ? "No logs" : FirstLog.Date.ToString("dd-MM-yyyy");
+
+    private string CurrentWeightDisplay =>
+        LatestLog is null ? "—" : $"{LatestLog.Weight:0.0} kg";
+
+    private string TotalLogsDisplay =>
+        $"{Client.DailyLogs.Count} total entries";
+
+    private double? WeightDelta =>
+        (FirstLog is not null && LatestLog is not null)
+            ? LatestLog.Weight - FirstLog.Weight
+            : null;
+
+    private string DeltaWeightDisplay
+    {
+        get
+        {
+            if (WeightDelta is null) return "—";
+            var sign = WeightDelta > 0 ? "+" : "";
+            return $"{sign}{WeightDelta.Value:0.0} kg";
+        }
+    }
+
+    private string DeltaColorClass
+    {
+        get
+        {
+            if (WeightDelta is null || Math.Abs(WeightDelta.Value) < 0.01)
+                return "text-muted";
+
+            return Client.FitnessGoal switch
+            {
+                FitnessGoal.WeightLoss => WeightDelta < 0 ? "text-success" : "text-danger",
+                FitnessGoal.MuscleGain => WeightDelta > 0 ? "text-success" : "text-warning",
+                _ => "text-primary"
+            };
+        }
+    }
+
+    private string DeltaContextText
+    {
+        get
+        {
+            if (WeightDelta is null) return "Awaiting data";
+            if (Math.Abs(WeightDelta.Value) < 0.01) return "No change";
+
+            return Client.FitnessGoal switch
+            {
+                FitnessGoal.WeightLoss => WeightDelta < 0 ? "On track (Loss)" : "Gain",
+                FitnessGoal.MuscleGain => WeightDelta > 0 ? "On track (Gain)" : "Loss",
+                _ => "Recorded progress"
+            };
+        }
+    }
+
+    private string SevenDayAvgDisplay
+    {
+        get
+        {
+            if (LatestLog is null) return "—";
+
+            var last7DaysLogs = Client.DailyLogs
+                .Where(l => l.Date >= LatestLog.Date.AddDays(-6) && l.Date <= LatestLog.Date)
+                .ToList();
+
+            if (last7DaysLogs.Count == 0) return "—";
+
+            var avg = last7DaysLogs.Average(l => l.Weight);
+            return $"{avg:0.0} kg";
+        }
+    }
+
+    private int CurrentStreak
+    {
+        get
+        {
+            if (Client.DailyLogs.Count == 0) return 0;
+
+            var dates = Client.DailyLogs
+                .Select(l => l.Date)
+                .Distinct()
+                .OrderByDescending(d => d)
+                .ToHashSet();
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var checkDate = dates.Contains(today) ? today : today.AddDays(-1);
+
+            int streak = 0;
+            while (dates.Contains(checkDate))
+            {
+                streak++;
+                checkDate = checkDate.AddDays(-1);
+            }
+
+            return streak;
+        }
+    }
+}

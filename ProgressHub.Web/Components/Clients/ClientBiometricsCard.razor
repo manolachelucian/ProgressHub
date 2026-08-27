@@ -8,10 +8,23 @@
             <tbody>
                 <tr><th>Goal</th><td><span class="badge bg-primary">@Client.FitnessGoal</span></td></tr>
                 <tr><th>Gender</th><td>@Client.Gender</td></tr>
-                <tr><th>Age</th><td>@Client.GetAge() yrs (@Client.DateOfBirth.ToString("yyyy-MM-dd"))</td></tr>
+                <tr><th>Age</th><td>@Client.GetAge() yrs (@Client.DateOfBirth.ToString("dd-MM-yyyy"))</td></tr>
                 <tr><th>Height</th><td>@Client.HeightInCm cm</td></tr>
                 <tr><th>Current Weight</th><td>@(LatestLog is null ? "—" : $"{LatestLog.Weight:0.0} kg")</td></tr>
-                <tr><th>BMI</th><td>@(BMIDisplay)</td></tr>
+                <tr>
+                    <th>BMI</th>
+                    <td>
+                        @if (CalculatedBmi is not null)
+                        {
+                            <span class="fw-semibold me-1">@CalculatedBmi.Value.ToString("0.0")</span>
+                            <span class="badge @BmiBadgeClass">@BmiCategoryText</span>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -27,6 +40,27 @@
     [Parameter]
     public DailyLog? LatestLog { get; set; }
 
+    private double? CalculatedBmi =>
+        LatestLog is null ? null : Client.CalculateBmi(LatestLog.Weight);
+
     private string BMIDisplay => LatestLog is null ? " - " : (Client.CalculateBmi(LatestLog.Weight)?.ToString("0.0") ?? " - ");
+
+    private string BmiCategoryText => CalculatedBmi switch
+    {
+        null => "—",
+        < 18.5 => "Underweight",
+        >= 18.5 and < 25.0 => "Normal",
+        >= 25.0 and < 30.0 => "Overweight",
+        _ => "Obese"
+    };
+
+    private string BmiBadgeClass => CalculatedBmi switch
+    {
+        null => "bg-secondary",
+        < 18.5 => "bg-info text-dark",
+        >= 18.5 and < 25.0 => "bg-success",
+        >= 25.0 and < 30.0 => "bg-warning text-dark",
+        _ => "bg-danger"
+    };
 
 }

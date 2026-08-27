@@ -1,0 +1,192 @@
+﻿@using ProgressHub.Core.Enums
+@using ProgressHub.Core.Models
+
+@if (IsOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">TDEE & Macro Calculator</h5>
+                    <button type="button" class="btn-close" @onclick="OnClose"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Vstupní parametry -->
+                        <div class="col-md-6 border-end">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-3">Parameters</h6>
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Activity Level</label>
+                                <select class="form-select form-select-sm" @bind="_activityMultiplier" @bind:after="Calculate">
+                                    <option value="1.2">Sedentary (Little or no exercise)</option>
+                                    <option value="1.375">Lightly Active (1-3 days/week)</option>
+                                    <option value="1.55">Moderately Active (3-5 days/week)</option>
+                                    <option value="1.725">Very Active (6-7 days/week)</option>
+                                    <option value="1.9">Extremely Active (Athletic / Physical job)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Target Goal</label>
+                                <select class="form-select form-select-sm" @bind="_selectedGoal" @bind:after="Calculate">
+                                    <option value="@FitnessGoal.WeightLoss">Weight Loss (-500 kcal deficit)</option>
+                                    <option value="@FitnessGoal.MuscleGain">Muscle Gain (+300 kcal surplus)</option>
+                                    <option value="@FitnessGoal.Maintenance">Maintenance (0 kcal change)</option>
+                                    <option value="@FitnessGoal.Recomposition">Recomposition (-200 kcal deficit)</option>
+                                    <option value="@FitnessGoal.Endurance">Endurance (+100 kcal surplus)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small mb-1">Protein Target (g / kg bodyweight)</label>
+                                <input type="number" step="0.1" class="form-control form-control-sm"
+                                       @bind="_proteinPerKg" @bind:after="Calculate" />
+                            </div>
+
+                            <div class="card bg-light border-0 p-2">
+                                <div class="small text-muted">Client biometrics used:</div>
+                                <div class="fw-semibold small">
+                                    @Client.Gender, @Client.GetAge() yrs, @Client.HeightInCm cm, @CurrentWeight kg
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Výsledky kalkulace -->
+                        <div class="col-md-6 ps-md-4">
+                            <h6 class="text-muted text-uppercase small fw-bold mb-3">Calculated Output</h6>
+
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span>Basal Metabolic Rate (BMR):</span>
+                                <strong>@_bmr kcal</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 small">
+                                <span>Maintenance (TDEE):</span>
+                                <strong>@_tdee kcal</strong>
+                            </div>
+
+                            <div class="alert alert-primary py-2 px-3 mb-3">
+                                <div class="small">Recommended Target Calories:</div>
+                                <div class="fs-4 fw-bold">@_targetCalories kcal / day</div>
+                            </div>
+
+                            <h6 class="text-muted text-uppercase small fw-bold mb-2">Macro Distribution</h6>
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    <tr>
+                                        <th>Protein (4 kcal/g)</th>
+                                        <td class="text-end fw-semibold">@_targetProtein g</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Fats (9 kcal/g, ~25%)</th>
+                                        <td class="text-end fw-semibold">@_targetFats g</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Carbohydrates (Rest)</th>
+                                        <td class="text-end fw-semibold">@_targetCarbs g</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="OnClose">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="ApplyMacros">
+                        Apply to Client Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter, EditorRequired] public User Client { get; set; } = null!;
+    [Parameter] public DailyLog? LatestLog { get; set; }
+    [Parameter] public EventCallback<CalculatedMacros> OnApply { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private double _activityMultiplier = 1.55;
+    private FitnessGoal _selectedGoal;
+    private double _proteinPerKg = 2.0;
+
+    private int _bmr;
+    private int _tdee;
+    private int _targetCalories;
+    private int _targetProtein;
+    private int _targetCarbs;
+    private int _targetFats;
+
+    private double CurrentWeight => LatestLog?.Weight ?? 75.0;
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            _selectedGoal = Client.FitnessGoal;
+            Calculate();
+        }
+    }
+
+    private void Calculate()
+    {
+        var age = Client.GetAge();
+        var weight = CurrentWeight;
+        var height = Client.HeightInCm;
+
+        // Mifflin-St Jeor vzorec
+        double bmrBase = (10 * weight) + (6.25 * height) - (5 * age);
+        double calculatedBmr = Client.Gender == Gender.Female ? bmrBase - 161 : bmrBase + 5;
+
+        _bmr = (int)Math.Round(calculatedBmr);
+        _tdee = (int)Math.Round(_bmr * _activityMultiplier);
+
+        // Úprava kalorií podle cíle
+        int calorieDelta = _selectedGoal switch
+        {
+            FitnessGoal.WeightLoss => -500,
+            FitnessGoal.MuscleGain => 300,
+            FitnessGoal.Recomposition => -200,
+            FitnessGoal.Endurance => 100,
+            _ => 0
+        };
+
+        _targetCalories = Math.Max(1200, _tdee + calorieDelta);
+
+        // Bílkoviny (podle zadaných g / kg)
+        _targetProtein = (int)Math.Round(weight * _proteinPerKg);
+
+        // Tuky (cca 25% celkového kalorického příjmu, 1g tuku = 9 kcal)
+        _targetFats = (int)Math.Round((_targetCalories * 0.25) / 9);
+
+        // Sacharidy (zbytek zbývajících kalorií, 1g sacharidů = 4 kcal)
+        int remainingCalories = _targetCalories - (_targetProtein * 4) - (_targetFats * 9);
+        _targetCarbs = Math.Max(0, (int)Math.Round(remainingCalories / 4.0));
+    }
+
+    private async Task ApplyMacros()
+    {
+        var result = new CalculatedMacros
+        {
+            Goal = _selectedGoal,
+            Calories = _targetCalories,
+            Protein = _targetProtein,
+            Carbs = _targetCarbs,
+            Fats = _targetFats
+        };
+
+        await OnApply.InvokeAsync(result);
+    }
+
+    public class CalculatedMacros
+    {
+        public FitnessGoal Goal { get; set; }
+        public int Calories { get; set; }
+        public int Protein { get; set; }
+        public int Carbs { get; set; }
+        public int Fats { get; set; }
+    }
+}

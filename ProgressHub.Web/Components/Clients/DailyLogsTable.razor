@@ -24,7 +24,7 @@ else
                 @foreach (var log in Logs.OrderByDescending(l => l.Date))
                 {
                     <tr>
-                        <td>@log.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@log.Date.ToString("dd-MM-yyyy")</td>
                         <td>@log.Weight.ToString("0.0")</td>
                         <td>@log.ConsumedCalories</td>
                         <td>@log.ConsumedProteins</td>
