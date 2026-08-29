@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Enums;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Services.MacroCalculator;
 using ProgressHub.Data;
 using ProgressHub.Data.Services;
 using ProgressHub.Web.Components;
@@ -21,6 +22,7 @@ namespace ProgressHub.Web
                 options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculator>();
 
             var app = builder.Build();
 

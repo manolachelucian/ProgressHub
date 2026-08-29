@@ -1,12 +1,11 @@
 ﻿@page "/clients/{Id:int}"
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
-@using ProgressHub.Core.Enums;
-@inject IUserService UserService
-@inject NavigationManager NavigationManager
-@using ProgressHub.Web.Components.Clients
-@inject IJSRuntime JSRuntime
-
+@inject IUserService UserService;
+@inject NavigationManager NavigationManager;
+@using ProgressHub.Web.Components.Clients;
+@inject IJSRuntime JSRuntime;
+@using ProgressHub.Core.Services.MacroCalculator;
 <PageTitle>Client Detail</PageTitle>
 
 @if (_isLoading)
@@ -58,11 +57,11 @@ else
     <DailyLogsTable Logs="_client.DailyLogs" OnEdit="OpenEditLogModal" OnDelete="HandleDeleteLog" />
 
     <!-- Tdee Calculator -->
-    <TdeeCalculatorModal IsOpen="_showTdeeModal"
-                         Client="_client"
-                         LatestLog="GetLatestLog()"
-                         OnApply="HandleApplyCalculatedMacros"
-                         OnClose="() => _showTdeeModal = false" />
+    <TdeeCalculatorModal IsOpen = "_showTdeeModal"
+                     Client = "_client"
+                     LatestLog = "GetLatestLog()"
+                     OnApply = "HandleApplyMacros"
+                     OnClose = "() => _showTdeeModal = false" />
 
     <!-- Edit profile -->
     <EditProfileModal IsOpen="_showEditProfileModal"
@@ -99,15 +98,15 @@ else
     private string? _submitError;
     private bool _showTdeeModal;
 
-    private async Task HandleApplyCalculatedMacros(TdeeCalculatorModal.CalculatedMacros result)
+
+    private async Task HandleApplyMacros(MacroCalculationResult result)
     {
         if (_client is null) return;
 
-        _client.FitnessGoal = result.Goal;
-        _client.TargetCalories = result.Calories;
-        _client.TargetProteinGrams = result.Protein;
-        _client.TargetCarbsGrams = result.Carbs;
-        _client.TargetFatsGrams = result.Fats;
+        _client.TargetCalories = result.TargetCalories;
+        _client.TargetProteinGrams = result.TargetProteinGrams;
+        _client.TargetCarbsGrams = result.TargetCarbsGrams;
+        _client.TargetFatsGrams = result.TargetFatsGrams;
 
         try
         {
@@ -117,7 +116,7 @@ else
         }
         catch (Exception)
         {
-            _submitError = "Failed to apply calculated macros.";
+            _submitError = "Failed to update target macros.";
         }
     }
 

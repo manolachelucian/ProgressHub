@@ -4,11 +4,7 @@ using ProgressHub.Core.Enums;
 using ProgressHub.Core.Models;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ProgressHub.Tests.Services.UserServiceTests
 {
