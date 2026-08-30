@@ -3,7 +3,7 @@
 @using ProgressHub.Core.Models
 @inject IUserService UserService;
 @inject NavigationManager NavigationManager;
-@using ProgressHub.Web.Components.Clients;
+@using ProgressHub.Web.Components.ClientsDetail;
 @inject IJSRuntime JSRuntime;
 @using ProgressHub.Core.Services.MacroCalculator;
 <PageTitle>Client Detail</PageTitle>
@@ -96,6 +96,7 @@ else
     private bool _isSubmitting;
     private string? _profileError;
     private string? _submitError;
+
     private bool _showTdeeModal;
 
 

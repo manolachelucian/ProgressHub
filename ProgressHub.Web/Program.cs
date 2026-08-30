@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Enums;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Services;
 using ProgressHub.Core.Services.MacroCalculator;
 using ProgressHub.Data;
 using ProgressHub.Data.Services;
@@ -23,6 +24,7 @@ namespace ProgressHub.Web
 
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculator>();
+            builder.Services.AddSingleton<IClientAnalyticsService, ClientAnalyticsService>();
 
             var app = builder.Build();
 
