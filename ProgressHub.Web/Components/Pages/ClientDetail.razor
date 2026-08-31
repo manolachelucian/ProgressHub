@@ -1,6 +1,7 @@
 ﻿@page "/clients/{Id:int}"
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
+@using ProgressHub.Core.Exceptions
 @inject IUserService UserService;
 @inject NavigationManager NavigationManager;
 @using ProgressHub.Web.Components.ClientsDetail;
@@ -172,10 +173,19 @@ else
             _showEditProfileModal = false;
             await LoadClientAsync();
         }
+        catch (InvalidEmailFormatException ex)
+        {
+            _profileError = "Please provide a valid email address.";
+        }
+        catch (DuplicateEmailException ex)
+        {
+            _profileError = "A client with this email address already exists.";
+        }
         catch (Exception)
         {
             _profileError = "Failed to update profile. Please check inputs and try again.";
         }
+        
         finally
         {
             _isSubmitting = false;

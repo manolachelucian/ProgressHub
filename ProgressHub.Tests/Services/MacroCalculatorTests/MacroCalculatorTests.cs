@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
-using ProgressHub.Core.Enums;
 using ProgressHub.Core.Interfaces;
+using ProgressHub.Core.Models.Enums;
 using ProgressHub.Core.Services.MacroCalculator;
 using System;
 using System.Collections.Generic;

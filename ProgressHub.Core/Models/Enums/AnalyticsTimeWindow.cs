@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProgressHub.Core.Enums
+namespace ProgressHub.Core.Models.Enums
 {
     public enum AnalyticsTimeWindow
     {

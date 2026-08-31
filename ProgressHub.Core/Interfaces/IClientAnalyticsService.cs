@@ -1,5 +1,5 @@
-﻿using ProgressHub.Core.Enums;
-using ProgressHub.Core.Models;
+﻿using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

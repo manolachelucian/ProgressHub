@@ -1,0 +1,176 @@
+﻿@using ProgressHub.Core.DTOs
+@using ProgressHub.Core.Enums
+@using ProgressHub.Core.Exceptions
+@using ProgressHub.Core.Interfaces
+@using ProgressHub.Core.Models
+@inject IUserService UserService
+
+@if (IsOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Client</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger py-2 mb-3">
+                            @_errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="_model" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">First Name</label>
+                                <InputText class="form-control" @bind-Value="_model.FirstName" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Last Name</label>
+                                <InputText class="form-control" @bind-Value="_model.LastName" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="_model.Email" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <InputDate class="form-control" @bind-Value="_model.DateOfBirth" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Gender</label>
+                                <InputSelect class="form-select" @bind-Value="_model.Gender">
+                                    <option value="@Gender.Male">Male</option>
+                                    <option value="@Gender.Female">Female</option>
+                                    <option value="@Gender.Other">Other</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fitness Goal</label>
+                            <InputSelect class="form-select" @bind-Value="_model.FitnessGoal">
+                                <option value="@FitnessGoal.WeightLoss">Weight Loss (Hubnutí)</option>
+                                <option value="@FitnessGoal.MuscleGain">Muscle Gain (Nabírání svalů)</option>
+                                <option value="@FitnessGoal.Maintenance">Maintenance (Udržování)</option>
+                                <option value="@FitnessGoal.Recomposition">Recomposition (Rekompozice)</option>
+                                <option value="@FitnessGoal.Endurance">Endurance (Vytrvalost)</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Height (cm)</label>
+                                <InputNumber class="form-control" @bind-Value="_model.HeightInCm" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Target Calories</label>
+                                <InputNumber class="form-control" @bind-Value="_model.TargetCalories" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Protein (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_model.TargetProteinGrams" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Carbs (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_model.TargetCarbsGrams" />
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Fats (g)</label>
+                                <InputNumber class="form-control" @bind-Value="_model.TargetFatsGrams" />
+                            </div>
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                @(_isSubmitting ? "Saving..." : "Create Client")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnClientAdded { get; set; }
+
+    private CreateClientDto _model = new();
+    private string? _errorMessage;
+    private bool _isSubmitting;
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen)
+        {
+            _model = new CreateClientDto();
+            _errorMessage = null;
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        _errorMessage = null;
+        _isSubmitting = true;
+
+        try
+        {
+            var userEntity = new User
+            {
+                FirstName = _model.FirstName,
+                LastName = _model.LastName,
+                Email = _model.Email,
+                DateOfBirth = _model.DateOfBirth,
+                Gender = _model.Gender,
+                FitnessGoal = _model.FitnessGoal,
+                HeightInCm = _model.HeightInCm,
+                TargetCalories = _model.TargetCalories,
+                TargetProteinGrams = _model.TargetProteinGrams,
+                TargetCarbsGrams = _model.TargetCarbsGrams,
+                TargetFatsGrams = _model.TargetFatsGrams
+            };
+
+            await UserService.AddClientAsync(userEntity);
+            await OnClientAdded.InvokeAsync();
+            await CloseModal();
+        }
+        catch (InvalidEmailFormatException)
+        {
+            _errorMessage = "Please provide a valid email address.";
+        }
+        catch (DuplicateEmailException)
+        {
+            _errorMessage = "A client with this email address already exists.";
+        }
+        catch (Exception)
+        {
+            _errorMessage = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

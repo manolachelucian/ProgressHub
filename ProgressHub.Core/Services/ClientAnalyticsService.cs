@@ -1,6 +1,6 @@
-﻿using ProgressHub.Core.Enums;
-using ProgressHub.Core.Interfaces;
+﻿using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,7 +39,7 @@ namespace ProgressHub.Core.Services
             var firstLog = sortedLogs.First();
             var latestLog = sortedLogs.Last();
 
-            // 7denní klouzavý průměr k poslednímu záznamu
+            
             var last7DaysLogs = client.DailyLogs
                 .Where(l => l.Date >= latestLog.Date.AddDays(-6) && l.Date <= latestLog.Date)
                 .ToList();
@@ -48,19 +48,19 @@ namespace ProgressHub.Core.Services
                 ? Math.Round(last7DaysLogs.Average(l => l.Weight), 1)
                 : null;
 
-            // Výpočet změny ZA dané vybrané období (14d, 30d, 90d, 180d, 365d, All-time)
+            
             DateOnly windowStartDate = window switch
             {
                 AnalyticsTimeWindow.AllTime => firstLog.Date,
                 _ => latestLog.Date.AddDays(-(int)window)
             };
 
-            // Záznamy spadající do vybraného období
+            
             var periodLogs = sortedLogs
                 .Where(l => l.Date >= windowStartDate && l.Date <= latestLog.Date)
                 .ToList();
 
-            // Výchozí váha PRO DANÉ OBDOBÍ (nejstarší log v daném okně nebo nejbližší předchozí)
+            
             var periodStartLog = sortedLogs
                 .Where(l => l.Date <= windowStartDate)
                 .LastOrDefault() ?? periodLogs.FirstOrDefault();
@@ -69,7 +69,7 @@ namespace ProgressHub.Core.Services
                 ? Math.Round(periodLogs.Average(l => l.Weight), 1)
                 : null;
 
-            // Delta za dané období = Aktuální váha (nebo průměr) - Váha na začátku okna
+          
             double? periodDelta = (periodStartLog is not null && latestLog.Id != periodStartLog.Id)
                 ? Math.Round(latestLog.Weight - periodStartLog.Weight, 1)
                 : (window == AnalyticsTimeWindow.AllTime && sortedLogs.Count > 1

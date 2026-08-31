@@ -1,8 +1,9 @@
-﻿using ProgressHub.Core.Models;
-using ProgressHub.Core.Enums;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using ProgressHub.Core.Exceptions;
 using ProgressHub.Core.Interfaces;
+using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.Enums;
+using ProgressHub.Core.Validation;
 
 namespace ProgressHub.Data.Services
 {
@@ -10,13 +11,22 @@ namespace ProgressHub.Data.Services
     {
         private readonly IDbContextFactory<ProgressHubDbContext> _contextFactory;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contextFactory"></param>
         public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
 
 
-        //remove client method
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task RemoveClientAsync(int clientId)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -33,16 +43,40 @@ namespace ProgressHub.Data.Services
             await context.SaveChangesAsync();
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="updatedClient"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task UpdateClientAsync(User updatedClient)
         {
+            ArgumentNullException.ThrowIfNull(updatedClient);
+            var normalizedEmail = updatedClient.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+
+            // 1. Regex validace formátu
+            if (!EmailValidator.IsValid(normalizedEmail))
+            {
+                throw new InvalidEmailFormatException(updatedClient.Email ?? string.Empty);
+            }
+
             await using var context = await _contextFactory.CreateDbContextAsync();
-            var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Id == updatedClient.Id && u.UserRole == UserRole.Client);
+            var existingUser = await context.Users
+                .FirstOrDefaultAsync(u => u.Id == updatedClient.Id && u.UserRole == UserRole.Client);
 
             if(existingUser is null)
             {
 
                 throw new KeyNotFoundException($"Client with ID {updatedClient.Id} was not found.");
+            }
+
+            // 2. Kontrola unikátnosti e-mailu (pokud ho změnil a nový už patří někomu jinému)
+            bool emailExistsOtherUser = await context.Users
+                .AnyAsync(u => u.Email.ToLower() == normalizedEmail && u.Id != updatedClient.Id);
+
+            if (emailExistsOtherUser)
+            {
+                throw new DuplicateEmailException(updatedClient.Email);
             }
 
             // Aktualizace profilových údajů
@@ -63,7 +97,10 @@ namespace ProgressHub.Data.Services
             await context.SaveChangesAsync();
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<User>> GetAllClientsAsync()
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -75,14 +112,45 @@ namespace ProgressHub.Data.Services
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="newClient"></param>
+        /// <returns></returns>
         public async Task AddClientAsync(User newClient)
         {
+            ArgumentNullException.ThrowIfNull(newClient);
+
+            var normalizedEmail = newClient.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+            if (!EmailValidator.IsValid(normalizedEmail))
+            {
+                throw new InvalidEmailFormatException(newClient.Email ?? string.Empty);
+            }
+
             await using var context = await _contextFactory.CreateDbContextAsync();
+
+            bool emailExist = await context.Users
+                .AnyAsync(u => u.Email.ToLower() == normalizedEmail);
+
+            if(emailExist)
+            {
+                throw new DuplicateEmailException(newClient.Email ?? string.Empty);
+            }
+
+            newClient.Email = normalizedEmail;
             newClient.UserRole = UserRole.Client;
+
             context.Users.Add(newClient);
             await context.SaveChangesAsync();
 
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="newDaylog"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task AddDailyLogAsync(DailyLog newDaylog)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -114,6 +182,11 @@ namespace ProgressHub.Data.Services
 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public async Task<User?> GetClientByIdAsync(int id)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -122,7 +195,12 @@ namespace ProgressHub.Data.Services
                 .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="updatedLog"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task UpdateDailyLogAsync(DailyLog updatedLog)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -147,6 +225,12 @@ namespace ProgressHub.Data.Services
             await context.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dailyLogId"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task RemoveDailyLogAsync(int dailyLogId)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -162,5 +246,8 @@ namespace ProgressHub.Data.Services
             context.DailyLog.Remove(log);
             await context.SaveChangesAsync();
         }
+
+
+   
     }
 }

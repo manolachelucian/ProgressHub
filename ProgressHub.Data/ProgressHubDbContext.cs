@@ -29,6 +29,11 @@ namespace ProgressHub.Data
         {
             base.OnModelCreating(modelBuilder);
 
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             modelBuilder.Entity<DailyLog>()
                 .HasOne(d => d.User)
                 .WithMany(u => u.DailyLogs)

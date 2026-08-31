@@ -1,7 +1,5 @@
-﻿
-
-using ProgressHub.Core.Enums;
-using ProgressHub.Core.Interfaces;
+﻿using ProgressHub.Core.Interfaces;
+using ProgressHub.Core.Models.Enums;
 
 namespace ProgressHub.Core.Services.MacroCalculator
 {

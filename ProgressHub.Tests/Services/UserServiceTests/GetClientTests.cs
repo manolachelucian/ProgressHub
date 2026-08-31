@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
-using ProgressHub.Core.Enums;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.Enums;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
 using System;

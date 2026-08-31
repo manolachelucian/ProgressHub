@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProgressHub.Data;
 
@@ -10,9 +11,11 @@ using ProgressHub.Data;
 namespace ProgressHub.Data.Migrations
 {
     [DbContext(typeof(ProgressHubDbContext))]
-    partial class ProgressHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830195731_AddUniqueIndexToUserEmail")]
+    partial class AddUniqueIndexToUserEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.12");

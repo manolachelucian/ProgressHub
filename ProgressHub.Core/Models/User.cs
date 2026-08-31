@@ -1,4 +1,4 @@
-﻿using ProgressHub.Core.Enums;
+﻿using ProgressHub.Core.Models.Enums;
 using ProgressHub.Core.Validation;
 using System.ComponentModel.DataAnnotations;
 using System.Xml.Linq;
