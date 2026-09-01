@@ -2,6 +2,8 @@
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
 @using ProgressHub.Core.Exceptions
+@using ProgressHub.Core.Models.DTOs.ClientDTOs
+@using ProgressHub.Core.Models.DTOs.DailyLogDTOs
 @inject IUserService UserService;
 @inject NavigationManager NavigationManager;
 @using ProgressHub.Web.Components.ClientsDetail;
@@ -75,7 +77,7 @@ else
     <!-- Daily log -->
     <DailyLogModal IsOpen="_showAddLogModal"
                    IsEditing="_isEditingLog"
-                   Model="_newLog"
+                   Model="_logModel"
                    IsSubmitting="_isSubmitting"
                    ErrorMessage="@_submitError"
                    OnSave="HandleSaveLog"
@@ -86,8 +88,8 @@ else
     [Parameter] public int Id { get; set; }
 
     private User? _client;
-    private User _editClientModel = new();
-    private DailyLog _newLog = new();
+    private UpdateClientDto _editClientModel = new();
+    private UpdateDailyLogDto _logModel = new();
 
     private bool _isLoading = true;
     private bool _isDeleting;
@@ -97,22 +99,34 @@ else
     private bool _isSubmitting;
     private string? _profileError;
     private string? _submitError;
-
     private bool _showTdeeModal;
 
+
+    protected override async Task OnInitializedAsync() => await LoadClientAsync();
 
     private async Task HandleApplyMacros(MacroCalculationResult result)
     {
         if (_client is null) return;
 
-        _client.TargetCalories = result.TargetCalories;
-        _client.TargetProteinGrams = result.TargetProteinGrams;
-        _client.TargetCarbsGrams = result.TargetCarbsGrams;
-        _client.TargetFatsGrams = result.TargetFatsGrams;
+        var updateDto = new UpdateClientDto
+        {
+            Id = _client.Id,
+            FirstName = _client.FirstName,
+            LastName = _client.LastName,
+            Email = _client.Email,
+            DateOfBirth = _client.DateOfBirth,
+            Gender = _client.Gender,
+            FitnessGoal = _client.FitnessGoal,
+            HeightInCm = _client.HeightInCm,
+            TargetCalories = result.TargetCalories,
+            TargetProteinGrams = result.TargetProteinGrams,
+            TargetCarbsGrams = result.TargetCarbsGrams,
+            TargetFatsGrams = result.TargetFatsGrams
+        };
 
         try
         {
-            await UserService.UpdateClientAsync(_client);
+            await UserService.UpdateClientAsync(updateDto);
             _showTdeeModal = false;
             await LoadClientAsync();
         }
@@ -122,7 +136,7 @@ else
         }
     }
 
-    protected override async Task OnInitializedAsync() => await LoadClientAsync();
+   
 
     private async Task LoadClientAsync()
     {
@@ -139,7 +153,7 @@ else
     {
         if (_client is null) return;
 
-        _editClientModel = new User
+        _editClientModel = new UpdateClientDto
         {
             Id = _client.Id,
             FirstName = _client.FirstName,
@@ -153,7 +167,6 @@ else
             TargetProteinGrams = _client.TargetProteinGrams,
             TargetCarbsGrams = _client.TargetCarbsGrams,
             TargetFatsGrams = _client.TargetFatsGrams,
-            UserRole = _client.UserRole
         };
 
         _profileError = null;
@@ -195,7 +208,7 @@ else
     private void OpenAddLogModal()
     {
         _isEditingLog = false;
-        _newLog = new DailyLog
+        _logModel = new UpdateDailyLogDto
         {
             UserId = Id,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
@@ -207,7 +220,7 @@ else
     private void OpenEditLogModal(DailyLog log)
     {
         _isEditingLog = true;
-        _newLog = new DailyLog
+        _logModel = new UpdateDailyLogDto
         {
             Id = log.Id,
             UserId = log.UserId,
@@ -234,11 +247,11 @@ else
         {
             if (_isEditingLog)
             {
-                await UserService.UpdateDailyLogAsync(_newLog);
+                await UserService.UpdateDailyLogAsync(_logModel);
             }
             else
             {
-                await UserService.AddDailyLogAsync(_newLog);
+                await UserService.AddDailyLogAsync(_logModel);  
             }
 
             _showAddLogModal = false;
@@ -282,8 +295,7 @@ else
     {
         if (_client is null) return;
 
-        var confirmed = await JSRuntime.InvokeAsync<bool>(
-            "confirm",
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
             $"Are you sure you want to permanently delete {_client.GetFullName()} and all their recorded logs?");
 
         if (confirmed)

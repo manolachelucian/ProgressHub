@@ -1,5 +1,5 @@
 ﻿@using ProgressHub.Core.Models
-
+@using ProgressHub.Core.Models.Enums
 @if(Logs.Count == 0)
 {
     <div class="alert alert-info">No logs recorded yet.</div>
@@ -16,6 +16,7 @@ else
                     <th>Protein (g)</th>
                     <th>Carbs (g)</th>
                     <th>Fats (g)</th>
+                    <th>Training</th>
                     <th>Note</th>
                     <th class="text-end">Actions</th>
                 </tr>
@@ -30,6 +31,20 @@ else
                         <td>@log.ConsumedProteins</td>
                         <td>@log.ConsumedCarbs</td>
                         <td>@log.ConsumedFats</td>
+                        <td>
+                            @switch (log.TrainingType)
+                            {
+                                case TrainingType.RestDay:
+                                    <span class="badge bg-secondary">Rest</span>
+                                    break;
+                                case TrainingType.Cardio:
+                                    <span class="badge bg-warning text-dark">Cardio</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-primary">@log.TrainingType</span>
+                                    break;
+                            }
+                        </td>
                         <td>@(log.Note ?? "—")</td>
                         <td class="text-end">
                             <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)"> Edit </button>

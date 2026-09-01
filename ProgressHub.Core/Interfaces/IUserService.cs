@@ -1,4 +1,6 @@
 ﻿using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.ClientDTOs;
+using ProgressHub.Core.Models.DTOs.DailyLogDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +11,22 @@ namespace ProgressHub.Core.Interfaces
 {
     public interface IUserService
     {
-        Task<List<User>> GetAllClientsAsync();
-        Task AddClientAsync(User newClient);
+        //client
+        Task<List<ClientListItemDto>> GetAllClientsAsync();
         Task<User?> GetClientByIdAsync(int id);
-        Task AddDailyLogAsync(DailyLog newDaylog);
+
+        //CRUD
+        Task AddClientAsync(CreateClientDto dto);
+        Task UpdateClientAsync(UpdateClientDto dto);
 
         Task RemoveClientAsync(int clientId);
 
-        Task UpdateClientAsync(User updatedClient);
 
-        Task UpdateDailyLogAsync(DailyLog updatedLog);
+        //Daily logs
+
+        Task AddDailyLogAsync(CreateDailyLogDto dto);
+
+        Task UpdateDailyLogAsync(UpdateDailyLogDto dto);
         Task RemoveDailyLogAsync(int dailyLogId);
     }
 }

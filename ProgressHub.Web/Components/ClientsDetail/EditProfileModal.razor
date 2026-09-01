@@ -1,5 +1,6 @@
-﻿@using ProgressHub.Core.Enums
+﻿@using ProgressHub.Core.Models.Enums
 @using ProgressHub.Core.Models
+@using ProgressHub.Core.Models.DTOs.ClientDTOs
 
 @if (IsOpen)
 {
@@ -102,7 +103,7 @@
 @code {
 
     [Parameter] public bool IsOpen { get; set; }
-    [Parameter, EditorRequired] public User Model { get; set; } = null!;
+    [Parameter, EditorRequired] public UpdateClientDto Model { get; set; } = null!;
     [Parameter] public bool IsSubmitting { get; set; }
     [Parameter] public string? ErrorMessage { get; set; }
     [Parameter] public EventCallback OnSave { get; set; }

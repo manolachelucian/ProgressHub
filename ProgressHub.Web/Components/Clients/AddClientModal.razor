@@ -1,5 +1,5 @@
-﻿@using ProgressHub.Core.DTOs
-@using ProgressHub.Core.Enums
+﻿@using ProgressHub.Core.Models.DTOs.ClientDTOs
+@using ProgressHub.Core.Models.Enums
 @using ProgressHub.Core.Exceptions
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
@@ -137,7 +137,7 @@
 
         try
         {
-            var userEntity = new User
+            var userEntity = new CreateClientDto
             {
                 FirstName = _model.FirstName,
                 LastName = _model.LastName,

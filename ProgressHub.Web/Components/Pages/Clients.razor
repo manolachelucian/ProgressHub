@@ -2,7 +2,7 @@
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models
 @using ProgressHub.Core.Exceptions
-@using ProgressHub.Core.Enums
+@using ProgressHub.Core.Models.DTOs.ClientDTOs
 @using ProgressHub.Web.Components.Clients
 @inject IUserService UserService
 @inject NavigationManager NavigationManager
@@ -43,7 +43,7 @@ else
             @foreach (var client in _clients)
             {
                 <tr style="cursor: pointer;" @onclick="() => NavigateToDetail(client.Id)">
-                    <td><strong>@client.GetFullName()</strong></td>
+                    <td><strong>@client.FullName</strong></td>
                     <td>@client.Email</td>
                     <td>@client.TargetCalories kcal</td>
                     <td>@GetLatestWeightDisplay(client)</td>
@@ -68,7 +68,7 @@ else
                 OnClientAdded="LoadClientsAsync" />
 
 @code {
-    private List<User> _clients = new();
+    private List<ClientListItemDto> _clients = new();
     private bool _isLoading = true;
     private bool _isAddModalOpen;
 
@@ -92,17 +92,16 @@ else
         NavigationManager.NavigateTo($"/clients/{clientId}");
     }
 
-    private string GetLatestWeightDisplay(User client)
+    private string GetLatestWeightDisplay(ClientListItemDto client)
     {
-        var latest = client.DailyLogs.OrderByDescending(l => l.Date).FirstOrDefault();
-        return latest is null ? "—" : $"{latest.Weight:0.0} kg";
+        return client.LatestWeight.HasValue ? $"{client.LatestWeight.Value:0.0} kg" : "—";
     }
 
-    private async Task HandleDeleteClient(User client)
+    private async Task HandleDeleteClient(ClientListItemDto client)
     {
         var confirmed = await JSRuntime.InvokeAsync<bool>(
             "confirm",
-            $"Are you sure you want to delete client {client.GetFullName()} and all their logs?");
+            $"Are you sure you want to delete client {client.FullName} and all their logs?");
 
         if (confirmed)
         {

@@ -1,4 +1,5 @@
-﻿using ProgressHub.Core.Validation;
+﻿using ProgressHub.Core.Models.Enums;
+using ProgressHub.Core.Validation;
 using System.ComponentModel.DataAnnotations;
 
 
@@ -11,16 +12,13 @@ namespace ProgressHub.Core.Models
 
         // Relation to user
         public int UserId { get; set; }
-        public User User { get; set; } = null!;
+        public User? User { get; set; } = null!;
 
         [NotFutureDate]
         public DateOnly Date {  get; set; }
 
         [Range(0.1, 500, ErrorMessage = "Weight must be greater than 0.")]
         public double Weight { get; set; }
-
-
-       
 
         [Range(0, 20000, ErrorMessage = "Calories cannot be negative.")]
         public int ConsumedCalories { get; set; }
@@ -35,6 +33,10 @@ namespace ProgressHub.Core.Models
         public int ConsumedFats { get; set; }
 
         [StringLength(500)]
-        public string? Note {  get; set; }
+        public string? Note { get; set; }
+
+        public TrainingType TrainingType { get; set; } = TrainingType.RestDay;
+
+        
     }
 }

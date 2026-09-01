@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProgressHub.Core.Models.DTOs
+namespace ProgressHub.Core.Models.DTOs.ClientDTOs
 {
     public class CreateClientDto
     {

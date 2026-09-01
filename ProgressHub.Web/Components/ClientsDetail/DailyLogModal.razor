@@ -1,4 +1,5 @@
-﻿@using ProgressHub.Core.Models
+﻿@using ProgressHub.Core.Models.DTOs.DailyLogDTOs
+@using ProgressHub.Core.Models.Enums
 @if (IsOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
@@ -44,6 +45,20 @@
                                 <InputNumber class="form-control" @bind-Value="Model.ConsumedFats" />
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Activity / Training</label>
+                            <InputSelect class="form-select" @bind-Value="Model.TrainingType">
+                                <option value="@TrainingType.RestDay">😴 Rest Day</option>
+                                <option value="@TrainingType.FullBody">🏋️ Full Body</option>
+                                <option value="@TrainingType.UpperBody">💪 Upper Body</option>
+                                <option value="@TrainingType.LowerBody">🦵 Lower Body</option>
+                                <option value="@TrainingType.Push">🔥 Push</option>
+                                <option value="@TrainingType.Pull">🪵 Pull</option>
+                                <option value="@TrainingType.Legs">🦵 Legs</option>
+                                <option value="@TrainingType.Cardio">🏃 Cardio</option>
+                                <option value="@TrainingType.Other">⚡ Other</option>
+                            </InputSelect>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label">Note (optional)</label>
@@ -70,7 +85,7 @@
 @code {
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public bool IsEditing { get; set; }
-    [Parameter, EditorRequired] public DailyLog Model { get; set; } = null!;
+    [Parameter, EditorRequired] public UpdateDailyLogDto Model { get; set; } = null!;
     [Parameter] public bool IsSubmitting { get; set; }
     [Parameter] public string? ErrorMessage { get; set; }
     [Parameter] public EventCallback OnSave { get; set; }

@@ -1,7 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Mapster;
+using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Exceptions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.ClientDTOs;
+using ProgressHub.Core.Models.DTOs.DailyLogDTOs;
 using ProgressHub.Core.Models.Enums;
 using ProgressHub.Core.Validation;
 
@@ -18,6 +21,19 @@ namespace ProgressHub.Data.Services
         public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<User?> GetClientByIdAsync(int id)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users
+                .Include(u => u.DailyLogs)
+                .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
         }
 
 
@@ -49,50 +65,50 @@ namespace ProgressHub.Data.Services
         /// <param name="updatedClient"></param>
         /// <returns></returns>
         /// <exception cref="KeyNotFoundException"></exception>
-        public async Task UpdateClientAsync(User updatedClient)
+        public async Task UpdateClientAsync(UpdateClientDto dto)
         {
-            ArgumentNullException.ThrowIfNull(updatedClient);
-            var normalizedEmail = updatedClient.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+            ArgumentNullException.ThrowIfNull(dto);
+            var normalizedEmail = dto.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
             // 1. Regex validace formátu
             if (!EmailValidator.IsValid(normalizedEmail))
             {
-                throw new InvalidEmailFormatException(updatedClient.Email ?? string.Empty);
+                throw new InvalidEmailFormatException(dto.Email ?? string.Empty);
             }
 
             await using var context = await _contextFactory.CreateDbContextAsync();
             var existingUser = await context.Users
-                .FirstOrDefaultAsync(u => u.Id == updatedClient.Id && u.UserRole == UserRole.Client);
+                .FirstOrDefaultAsync(u => u.Id == dto.Id && u.UserRole == UserRole.Client);
 
             if(existingUser is null)
             {
 
-                throw new KeyNotFoundException($"Client with ID {updatedClient.Id} was not found.");
+                throw new KeyNotFoundException($"Client with ID {dto.Id} was not found.");
             }
 
             // 2. Kontrola unikátnosti e-mailu (pokud ho změnil a nový už patří někomu jinému)
             bool emailExistsOtherUser = await context.Users
-                .AnyAsync(u => u.Email.ToLower() == normalizedEmail && u.Id != updatedClient.Id);
+                .AnyAsync(u => u.Email.ToLower() == normalizedEmail && u.Id != dto.Id);
 
             if (emailExistsOtherUser)
             {
-                throw new DuplicateEmailException(updatedClient.Email);
+                throw new DuplicateEmailException(dto.Email);
             }
 
             // Aktualizace profilových údajů
-            existingUser.FirstName = updatedClient.FirstName;
-            existingUser.LastName = updatedClient.LastName;
-            existingUser.Email = updatedClient.Email;
-            existingUser.DateOfBirth = updatedClient.DateOfBirth;
-            existingUser.Gender = updatedClient.Gender;
-            existingUser.FitnessGoal = updatedClient.FitnessGoal;
-            existingUser.HeightInCm = updatedClient.HeightInCm;
+            existingUser.FirstName = dto.FirstName;
+            existingUser.LastName = dto.LastName;
+            existingUser.Email = dto.Email;
+            existingUser.DateOfBirth = dto.DateOfBirth;
+            existingUser.Gender = dto.Gender;
+            existingUser.FitnessGoal = dto.FitnessGoal;
+            existingUser.HeightInCm = dto.HeightInCm;
 
             // Aktualizace makro cílů
-            existingUser.TargetCalories = updatedClient.TargetCalories;
-            existingUser.TargetProteinGrams = updatedClient.TargetProteinGrams;
-            existingUser.TargetCarbsGrams = updatedClient.TargetCarbsGrams;
-            existingUser.TargetFatsGrams = updatedClient.TargetFatsGrams;
+            existingUser.TargetCalories = dto.TargetCalories;
+            existingUser.TargetProteinGrams = dto.TargetProteinGrams;
+            existingUser.TargetCarbsGrams = dto.TargetCarbsGrams;
+            existingUser.TargetFatsGrams = dto.TargetFatsGrams;
 
             await context.SaveChangesAsync();
         }
@@ -101,15 +117,26 @@ namespace ProgressHub.Data.Services
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task<List<User>> GetAllClientsAsync()
+        public async Task<List<ClientListItemDto>> GetAllClientsAsync()
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
 
             return await context.Users
-                .Where(u => u.UserRole == UserRole.Client)
-                .Include(u => u.DailyLogs)
-                .OrderBy(u => u.LastName)
-                .ToListAsync();
+            .Where(u => u.UserRole == UserRole.Client)
+            .OrderBy(u => u.LastName)
+            .Select(u => new ClientListItemDto
+            {
+                Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                TargetCalories = u.TargetCalories,
+                LatestWeight = u.DailyLogs
+                    .OrderByDescending(l => l.Date)
+                    .Select(l => (double?)l.Weight)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
         }
 
         /// <summary>
@@ -117,14 +144,14 @@ namespace ProgressHub.Data.Services
         /// </summary>
         /// <param name="newClient"></param>
         /// <returns></returns>
-        public async Task AddClientAsync(User newClient)
+        public async Task AddClientAsync(CreateClientDto dto)
         {
-            ArgumentNullException.ThrowIfNull(newClient);
+            ArgumentNullException.ThrowIfNull(dto);
 
-            var normalizedEmail = newClient.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+            var normalizedEmail = dto.Email?.Trim().ToLowerInvariant() ?? string.Empty;
             if (!EmailValidator.IsValid(normalizedEmail))
             {
-                throw new InvalidEmailFormatException(newClient.Email ?? string.Empty);
+                throw new InvalidEmailFormatException(dto.Email ?? string.Empty);
             }
 
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -134,16 +161,30 @@ namespace ProgressHub.Data.Services
 
             if(emailExist)
             {
-                throw new DuplicateEmailException(newClient.Email ?? string.Empty);
+                throw new DuplicateEmailException(dto.Email ?? string.Empty);
             }
 
-            newClient.Email = normalizedEmail;
-            newClient.UserRole = UserRole.Client;
-
-            context.Users.Add(newClient);
+            var clientEntity = new User
+            {
+                FirstName = dto.FirstName.Trim(),
+                LastName = dto.LastName.Trim(),
+                Email = normalizedEmail,
+                DateOfBirth = dto.DateOfBirth,
+                Gender = dto.Gender,
+                FitnessGoal = dto.FitnessGoal,
+                HeightInCm = dto.HeightInCm,
+                TargetCalories = dto.TargetCalories,
+                TargetProteinGrams = dto.TargetProteinGrams,
+                TargetCarbsGrams = dto.TargetCarbsGrams,
+                TargetFatsGrams = dto.TargetFatsGrams,
+                UserRole = UserRole.Client
+            };
+            context.Users.Add(clientEntity);
             await context.SaveChangesAsync();
 
         }
+
+        ///---------------------------------- Daily Log Management --------------------------------
 
         /// <summary>
         /// 
@@ -151,76 +192,79 @@ namespace ProgressHub.Data.Services
         /// <param name="newDaylog"></param>
         /// <returns></returns>
         /// <exception cref="KeyNotFoundException"></exception>
-        public async Task AddDailyLogAsync(DailyLog newDaylog)
+        public async Task AddDailyLogAsync(CreateDailyLogDto dto)
         {
+            ArgumentNullException.ThrowIfNull(dto);
+
             await using var context = await _contextFactory.CreateDbContextAsync();
 
-            var userExists = await context.Users.AnyAsync(u => u.Id == newDaylog.UserId);
+            var userExists = await context.Users.AnyAsync(u => u.Id == dto.UserId);
             if (!userExists)
             {
-                throw new KeyNotFoundException(
-                    $"Cannot add daily log: no user with Id {newDaylog.UserId} exists.");
+                throw new KeyNotFoundException($"Cannot add daily log: no user with Id {dto.UserId} exists.");
             }
 
             var existing = await context.DailyLog.FirstOrDefaultAsync(
-                l => l.UserId == newDaylog.UserId && l.Date == newDaylog.Date);
+                l => l.UserId == dto.UserId && l.Date == dto.Date);
 
             if (existing is null)
             {
-                context.DailyLog.Add(newDaylog);
+                var newLog = new DailyLog
+                {
+                    UserId = dto.UserId,
+                    Date = dto.Date,
+                    Weight = dto.Weight,
+                    ConsumedCalories = dto.ConsumedCalories,
+                    ConsumedProteins = dto.ConsumedProteins,
+                    ConsumedCarbs = dto.ConsumedCarbs,
+                    ConsumedFats = dto.ConsumedFats,
+                    TrainingType = dto.TrainingType,
+                    Note = dto.Note
+                };
+                context.DailyLog.Add(newLog);
             }
             else
             {
-                existing.Weight = newDaylog.Weight;
-                existing.ConsumedCalories = newDaylog.ConsumedCalories;
-                existing.ConsumedProteins = newDaylog.ConsumedProteins;
-                existing.ConsumedCarbs = newDaylog.ConsumedCarbs;
-                existing.ConsumedFats = newDaylog.ConsumedFats;
+                existing.Weight = dto.Weight;
+                existing.ConsumedCalories = dto.ConsumedCalories;
+                existing.ConsumedProteins = dto.ConsumedProteins;
+                existing.ConsumedCarbs = dto.ConsumedCarbs;
+                existing.ConsumedFats = dto.ConsumedFats;
+                existing.TrainingType = dto.TrainingType;
+                existing.Note = dto.Note;
             }
 
             await context.SaveChangesAsync();
 
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public async Task<User?> GetClientByIdAsync(int id)
-        {
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.Users
-                .Include(u => u.DailyLogs)
-                .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
-        }
-
+        
         /// <summary>
         /// 
         /// </summary>
         /// <param name="updatedLog"></param>
         /// <returns></returns>
         /// <exception cref="KeyNotFoundException"></exception>
-        public async Task UpdateDailyLogAsync(DailyLog updatedLog)
+        public async Task UpdateDailyLogAsync(UpdateDailyLogDto dto)
         {
+            ArgumentNullException.ThrowIfNull(dto);
+
             await using var context = await _contextFactory.CreateDbContextAsync();
 
-            var existingLog = await context.DailyLog
-                .FirstOrDefaultAsync(l => l.Id == updatedLog.Id);
-
+            var existingLog = await context.DailyLog.FirstOrDefaultAsync(l => l.Id == dto.Id);
             if (existingLog is null)
             {
-                throw new KeyNotFoundException($"DailyLog with ID {updatedLog.Id} was not found.");
+                throw new KeyNotFoundException($"DailyLog with ID {dto.Id} was not found.");
             }
 
-            // Aktualizace hodnot v záznamu
-            existingLog.Date = updatedLog.Date;
-            existingLog.Weight = updatedLog.Weight;
-            existingLog.ConsumedCalories = updatedLog.ConsumedCalories;
-            existingLog.ConsumedProteins = updatedLog.ConsumedProteins;
-            existingLog.ConsumedCarbs = updatedLog.ConsumedCarbs;
-            existingLog.ConsumedFats = updatedLog.ConsumedFats;
-            existingLog.Note = updatedLog.Note;
+            existingLog.Date = dto.Date;
+            existingLog.Weight = dto.Weight;
+            existingLog.ConsumedCalories = dto.ConsumedCalories;
+            existingLog.ConsumedProteins = dto.ConsumedProteins;
+            existingLog.ConsumedCarbs = dto.ConsumedCarbs;
+            existingLog.ConsumedFats = dto.ConsumedFats;
+            existingLog.TrainingType = dto.TrainingType;
+            existingLog.Note = dto.Note;
 
             await context.SaveChangesAsync();
         }
