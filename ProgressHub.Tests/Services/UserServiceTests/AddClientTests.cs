@@ -2,14 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.ClientDTOs;
+using ProgressHub.Core.Models.DTOs.DailyLogDTOs;
 using ProgressHub.Core.Models.Enums;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ProgressHub.Tests.Services.UserServiceTests
 {
@@ -17,8 +15,8 @@ namespace ProgressHub.Tests.Services.UserServiceTests
     {
 
         /// <summary>
-        /// Ověřuje, že metoda <see cref="UserService.AddClientAsync"/> správně uloží nového klienta
-        /// a vynutí roli <see cref="UserRole.Client"/> bez ohledu na původně zadanou roli.
+        /// Ověřuje, že metoda <see cref="UserService.AddClientAsync"/> správně uloží nového klienta z DTO
+        /// a nastaví roli <see cref="UserRole.Client"/>.
         /// </summary>
         /// <param name="firstName">Křestní jméno klienta.</param>
         /// <param name="lastName">Příjmení klienta.</param>
@@ -30,38 +28,41 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         public async Task AddClientAsync_ShouldPersistClient_AndForceClientRole(
             string firstName, string lastName, string email, int targetCalories)
         {
-            //arrange
+            // Arrange
             var factory = TestDbContextFactory.Create();
             IUserService userService = new UserService(factory);
 
-            var expectedClient = new User
+            var clientDto = new CreateClientDto
             {
                 FirstName = firstName,
                 LastName = lastName,
                 Email = email,
                 TargetCalories = targetCalories,
-                UserRole = UserRole.Coach // deliberately wrong on purpose
+                HeightInCm = 175,
+                DateOfBirth = new DateOnly(1995, 5, 10),
+                Gender = Gender.Male,
+                FitnessGoal = FitnessGoal.WeightLoss
             };
 
-            //ACT
-            await userService.AddClientAsync(expectedClient);
+            // Act
+            await userService.AddClientAsync(clientDto);
 
-            //Assert
-
+            // Assert
             await using var context = await factory.CreateDbContextAsync();
             var stored = await context.Users.SingleAsync(u => u.Email == email);
 
-            stored.Should().BeEquivalentTo(expectedClient, options => options.Excluding(u => u.Id)
-            .Excluding(u => u.UserRole));
+            // Porovná všechny shodné property mezi User entitou a CreateClientDto a ignoruje navigační/DB vlastnosti navíc
+            stored.Should().BeEquivalentTo(clientDto, options => options.ExcludingMissingMembers());
 
+            // Explicitní ověření vynucené role
             stored.UserRole.Should().Be(UserRole.Client);
-
+            stored.Id.Should().BeGreaterThan(0);
         }
 
 
 
         /// <summary>
-        /// Ověřuje, že metoda <see cref="UserService.AddDailyLogAsync"/> správně vytvoří a vloží nový záznam,
+        /// Ověřuje, že metoda <see cref="UserService.AddDailyLogAsync"/> správně vytvoří a vloží nový záznam z DTO,
         /// pokud pro daného klienta a datum ještě žádný log neexistuje.
         /// </summary>
         /// <param name="weight">Váha klienta v kg.</param>
@@ -75,6 +76,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         public async Task AddDailyLogAsync_ShouldInsert_WhenNoExistingLogForDate(
             double weight, int calories, int proteins, int carbs, int fats)
         {
+            // Arrange
             var factory = TestDbContextFactory.Create();
             var client = new User
             {
@@ -92,7 +94,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             }
 
             var sut = new UserService(factory);
-            var log = new DailyLog
+            var logDto = new CreateDailyLogDto
             {
                 UserId = client.Id,
                 Date = new DateOnly(2026, 8, 25),
@@ -100,20 +102,27 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 ConsumedCalories = calories,
                 ConsumedProteins = proteins,
                 ConsumedCarbs = carbs,
-                ConsumedFats = fats
+                ConsumedFats = fats,
+                TrainingType = TrainingType.FullBody,
+                Note = "Great workout"
             };
 
-            await sut.AddDailyLogAsync(log);
+            // Act
+            await sut.AddDailyLogAsync(logDto);
 
+            // Assert
             await using var context = await factory.CreateDbContextAsync();
             var stored = await context.DailyLog.SingleAsync();
 
-            stored.Should().BeEquivalentTo(log, options => options.Excluding(l => l.Id));
+            stored.Id.Should().BeGreaterThan(0);
+            stored.Should().BeEquivalentTo(logDto, options => options.ExcludingMissingMembers());
         }
+
+
 
         /// <summary>
         /// Ověřuje, že metoda <see cref="UserService.AddDailyLogAsync"/> vyhodí výjimku <see cref="KeyNotFoundException"/>,
-        /// pokud je zadáno ID uživatele, které v databázi neexistuje.
+        /// pokud je zadáno ID uživatele v DTO, které v databázi neexistuje.
         /// </summary>
         [Fact]
         public async Task AddDailyLogAsync_ShouldThrowKeyNotFoundException_WhenUserDoesNotExist()
@@ -121,7 +130,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             var factory = TestDbContextFactory.Create();
             var sut = new UserService(factory);
 
-            var log = new DailyLog
+            var logDto = new CreateDailyLogDto
             {
                 UserId = 999,
                 Date = new DateOnly(2026, 8, 25),
@@ -129,21 +138,24 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 ConsumedCalories = 2000,
                 ConsumedProteins = 150,
                 ConsumedCarbs = 200,
-                ConsumedFats = 60
+                ConsumedFats = 60,
+                TrainingType = TrainingType.RestDay
             };
 
-            var act = async () => await sut.AddDailyLogAsync(log);
+            var act = async () => await sut.AddDailyLogAsync(logDto);
 
-            await act.Should().ThrowAsync<KeyNotFoundException>();
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage("*999*");
         }
 
         /// <summary>
         /// Ověřuje upsert chování: při opakovaném volání <see cref="UserService.AddDailyLogAsync"/>
-        /// pro stejného uživatele a stejné datum dojde k aktualizaci stávajícího záznamu namísto vytvoření duplicity.
+        /// pro stejného uživatele a stejné datum dojde k aktualizaci stávajícího záznamu z DTO namísto vytvoření duplicity.
         /// </summary>
         [Fact]
         public async Task AddDailyLogAsync_ShouldUpdateExisting_WhenSameUserAndDate_NotDuplicate()
         {
+            // Arrange
             var factory = TestDbContextFactory.Create();
             var client = new User
             {
@@ -163,7 +175,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             var sut = new UserService(factory);
             var date = new DateOnly(2026, 8, 25);
 
-            await sut.AddDailyLogAsync(new DailyLog
+            var initialDto = new CreateDailyLogDto
             {
                 UserId = client.Id,
                 Date = date,
@@ -171,9 +183,11 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 ConsumedCalories = 2000,
                 ConsumedProteins = 150,
                 ConsumedCarbs = 200,
-                ConsumedFats = 60
-            });
-            await sut.AddDailyLogAsync(new DailyLog
+                ConsumedFats = 60,
+                TrainingType = TrainingType.RestDay
+            };
+
+            var updatedDto = new CreateDailyLogDto
             {
                 UserId = client.Id,
                 Date = date,
@@ -181,15 +195,23 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 ConsumedCalories = 2100,
                 ConsumedProteins = 160,
                 ConsumedCarbs = 210,
-                ConsumedFats = 65
-            });
+                ConsumedFats = 65,
+                TrainingType = TrainingType.Push,
+                Note = "Updated workout day"
+            };
 
+            // Act
+            await sut.AddDailyLogAsync(initialDto);
+            await sut.AddDailyLogAsync(updatedDto);
+
+            // Assert
             await using var context = await factory.CreateDbContextAsync();
             var logs = await context.DailyLog.Where(l => l.UserId == client.Id).ToListAsync();
 
             logs.Should().ContainSingle();
-            logs.Single().Weight.Should().Be(79.5);
-            logs.Single().ConsumedCalories.Should().Be(2100);
+            var stored = logs.Single();
+
+            stored.Should().BeEquivalentTo(updatedDto, options => options.ExcludingMissingMembers());
         }
 
     }

@@ -92,11 +92,13 @@ namespace ProgressHub.Tests.Services.UserServiceTests
 
         /// <summary>
         /// Ověřuje, že metoda <see cref="UserService.GetAllClientsAsync"/> vrátí pouze uživatele
-        /// s rolí <see cref="UserRole.Client"/> a správně načte (Include) jejich přiřazené denní logy.
+        /// s rolí <see cref="UserRole.Client"/> a správně namapuje data do <see cref="ClientListItemDto"/>
+        /// včetně hodnoty LatestWeight.
         /// </summary>
         [Fact]
-        public async Task GetAllClientsAsync_ShouldReturnOnlyClients_WithDailyLogsIncluded()
+        public async Task GetAllClientsAsync_ShouldReturnOnlyClients_WithLatestWeightCalculated()
         {
+            // Arrange
             var factory = TestDbContextFactory.Create();
 
             await using (var seed = await factory.CreateDbContextAsync())
@@ -111,7 +113,8 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                         TargetCalories = 2000,
                         DailyLogs = new List<DailyLog>
                         {
-                            new() { Date = new DateOnly(2026, 1, 1), Weight = 80, ConsumedCalories = 2000 }
+                    new() { Date = new DateOnly(2026, 1, 1), Weight = 82.0, ConsumedCalories = 2000 },
+                    new() { Date = new DateOnly(2026, 1, 5), Weight = 80.5, ConsumedCalories = 1950 }
                         }
                     },
                     new User
@@ -126,10 +129,20 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             }
 
             var sut = new UserService(factory);
+
+            // Act
             var clients = await sut.GetAllClientsAsync();
 
-            clients.Should().ContainSingle(u => u.Email == "c1@x.com");
-            clients.Single().DailyLogs.Should().ContainSingle();
+            // Assert
+            clients.Should().ContainSingle();
+
+            var clientDto = clients.Single();
+            clientDto.Email.Should().Be("c1@x.com");
+            clientDto.FirstName.Should().Be("Client");
+            clientDto.LastName.Should().Be("One");
+            clientDto.FullName.Should().Be("Client One");
+            clientDto.TargetCalories.Should().Be(2000);
+            clientDto.LatestWeight.Should().Be(80.5); 
         }
 
 

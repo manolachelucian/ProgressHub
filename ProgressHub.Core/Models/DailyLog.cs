@@ -12,7 +12,7 @@ namespace ProgressHub.Core.Models
 
         // Relation to user
         public int UserId { get; set; }
-        public User? User { get; set; } = null!;
+        public User User { get; set; } = null!;
 
         [NotFutureDate]
         public DateOnly Date {  get; set; }

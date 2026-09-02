@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.ClientDTOs;
 using ProgressHub.Core.Models.Enums;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
@@ -12,7 +13,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
     {
         /// <summary>
         /// Ověřuje, že metoda <see cref="UserService.UpdateClientAsync"/> správně aktualizuje
-        /// profilové údaje i makro cíle existujícího klienta v databázi.
+        /// profilové údaje i makro cíle existujícího klienta v databázi z předaného DTO.
         /// </summary>
         [Fact]
         public async Task UpdateClientAsync_ShouldUpdateProfileAndMacros_WhenClientExists()
@@ -46,7 +47,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
 
             var sut = new UserService(factory);
 
-            var updatedClientData = new User
+            var updateDto = new UpdateClientDto
             {
                 Id = clientId,
                 FirstName = "Nové",
@@ -63,29 +64,23 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             };
 
             // Act
-            await sut.UpdateClientAsync(updatedClientData);
+            await sut.UpdateClientAsync(updateDto);
 
             // Assert
             await using var context = await factory.CreateDbContextAsync();
             var stored = await context.Users.SingleAsync(u => u.Id == clientId);
 
-            stored.FirstName.Should().Be("Nové");
-            stored.LastName.Should().Be("Příjmení");
-            stored.Email.Should().Be("nove@test.cz");
-            stored.DateOfBirth.Should().Be(new DateOnly(1996, 5, 20));
-            stored.Gender.Should().Be(Gender.Female);
-            stored.FitnessGoal.Should().Be(FitnessGoal.MuscleGain);
-            stored.HeightInCm.Should().Be(182);
-            stored.TargetCalories.Should().Be(2500);
-            stored.TargetProteinGrams.Should().Be(180);
-            stored.TargetCarbsGrams.Should().Be(260);
-            stored.TargetFatsGrams.Should().Be(75);
+            // Zkontroluje, že všechna pole z UpdateClientDto se promítla do entity
+            stored.Should().BeEquivalentTo(updateDto, options => options.ExcludingMissingMembers());
+
+            // Ověří, že role nebyla změněna a zůstala Client
+            stored.UserRole.Should().Be(UserRole.Client);
         }
 
 
         /// <summary>
         /// Ověřuje, že metoda <see cref="UserService.UpdateClientAsync"/> vyhodí výjimku
-        /// <see cref="KeyNotFoundException"/>, pokud zadané ID klienta v databázi neexistuje.
+        /// <see cref="KeyNotFoundException"/>, pokud zadané ID klienta v DTO v databázi neexistuje.
         /// </summary>
         [Fact]
         public async Task UpdateClientAsync_ShouldThrowKeyNotFoundException_WhenClientDoesNotExist()
@@ -94,7 +89,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             var factory = TestDbContextFactory.Create();
             var sut = new UserService(factory);
 
-            var nonExistentClient = new User
+            var nonExistentClientDto = new UpdateClientDto
             {
                 Id = 99999,
                 FirstName = "Neexistující",
@@ -103,13 +98,12 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             };
 
             // Act
-            var act = async () => await sut.UpdateClientAsync(nonExistentClient);
+            var act = async () => await sut.UpdateClientAsync(nonExistentClientDto);
 
             // Assert
-            await act.Should().ThrowAsync<KeyNotFoundException>();
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage("*99999*");
         }
-
-
 
         /// <summary>
         /// Ověřuje bezpečnostní pravidlo: metoda <see cref="UserService.UpdateClientAsync"/> vyhodí výjimku
@@ -138,7 +132,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
 
             var sut = new UserService(factory);
 
-            var updateAttempt = new User
+            var updateAttemptDto = new UpdateClientDto
             {
                 Id = coachId,
                 FirstName = "Hacknutý",
@@ -147,10 +141,11 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             };
 
             // Act
-            var act = async () => await sut.UpdateClientAsync(updateAttempt);
+            var act = async () => await sut.UpdateClientAsync(updateAttemptDto);
 
             // Assert
-            await act.Should().ThrowAsync<KeyNotFoundException>();
+            await act.Should().ThrowAsync<KeyNotFoundException>()
+                .WithMessage($"*{coachId}*");
         }
     }
 }

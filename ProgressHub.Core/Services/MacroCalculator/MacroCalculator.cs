@@ -25,9 +25,13 @@ namespace ProgressHub.Core.Services.MacroCalculator
 
             // Mifflin-St Jeor vzorec
             double bmrBase = (10 * input.WeightInKg) + (6.25 * input.HeightInCm) - (5 * input.AgeInYears);
-            double calculatedBmr = input.Gender == Gender.Female ? bmrBase - 161 : bmrBase + 5;
-
-            int bmr = (int)Math.Round(calculatedBmr);
+            double bmr = input.Gender switch
+            {
+                Gender.Male => bmrBase + 5,
+                Gender.Female => bmrBase - 161,
+                Gender.Other => bmrBase - 78,
+                _ => throw new ArgumentOutOfRangeException(nameof(input.Gender), "Unsupported gender value.")
+            };
             int tdee = (int)Math.Round(bmr * input.ActivityMultiplier);
 
             int calorieDelta = input.Goal switch

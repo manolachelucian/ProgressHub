@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.DailyLogDTOs;
 using ProgressHub.Core.Models.Enums;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
@@ -16,6 +17,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             // Arrange
             var factory = TestDbContextFactory.Create();
             int logId;
+            int clientId;
 
             var client = new User
             {
@@ -24,9 +26,9 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 Email = "jan@novak.cz",
                 UserRole = UserRole.Client,
                 DailyLogs = new List<DailyLog>
-            {
-                new() { Date = new DateOnly(2026, 3, 1), Weight = 80.0, ConsumedCalories = 2200 }
-            }
+        {
+            new() { Date = new DateOnly(2026, 3, 1), Weight = 80.0, ConsumedCalories = 2200 }
+        }
             };
 
             await using (var seed = await factory.CreateDbContextAsync())
@@ -34,33 +36,33 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 seed.Users.Add(client);
                 await seed.SaveChangesAsync();
                 logId = client.DailyLogs.First().Id;
+                clientId = client.Id;
             }
 
             var sut = new UserService(factory);
 
-            var updatedLog = new DailyLog
+            var updateDto = new UpdateDailyLogDto
             {
                 Id = logId,
+                UserId = clientId,
                 Date = new DateOnly(2026, 3, 1),
                 Weight = 79.2,
                 ConsumedCalories = 2100,
                 ConsumedProteins = 160,
                 ConsumedCarbs = 210,
                 ConsumedFats = 65,
+                TrainingType = TrainingType.Push,
                 Note = "Updated note"
             };
 
             // Act
-            await sut.UpdateDailyLogAsync(updatedLog);
+            await sut.UpdateDailyLogAsync(updateDto);
 
             // Assert
             await using var context = await factory.CreateDbContextAsync();
             var stored = await context.DailyLog.SingleAsync(l => l.Id == logId);
 
-            stored.Weight.Should().Be(79.2);
-            stored.ConsumedCalories.Should().Be(2100);
-            stored.ConsumedProteins.Should().Be(160);
-            stored.Note.Should().Be("Updated note");
+            stored.Should().BeEquivalentTo(updateDto, options => options.ExcludingMissingMembers());
         }
 
         [Fact]

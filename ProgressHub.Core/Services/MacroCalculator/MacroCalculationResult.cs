@@ -11,7 +11,7 @@ namespace ProgressHub.Core.Services.MacroCalculator
 
         public MacroCalculationResult() { }
 
-        public int Bmr { get; init; }
+        public double Bmr { get; init; }
         public int Tdee { get; init; }
         public int TargetCalories { get; init; }
         public int TargetProteinGrams { get; init; }

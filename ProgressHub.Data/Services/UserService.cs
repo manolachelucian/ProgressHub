@@ -46,8 +46,9 @@ namespace ProgressHub.Data.Services
         public async Task RemoveClientAsync(int clientId)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
+
+            // Načteme pouze samotného klienta bez zbytečného .Include(u => u.DailyLogs)
             var client = await context.Users
-                .Include(u => u.DailyLogs)
                 .FirstOrDefaultAsync(u => u.Id == clientId && u.UserRole == UserRole.Client);
 
             if (client is null)
@@ -68,25 +69,24 @@ namespace ProgressHub.Data.Services
         public async Task UpdateClientAsync(UpdateClientDto dto)
         {
             ArgumentNullException.ThrowIfNull(dto);
+
             var normalizedEmail = dto.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
-            // 1. Regex validace formátu
             if (!EmailValidator.IsValid(normalizedEmail))
             {
                 throw new InvalidEmailFormatException(dto.Email ?? string.Empty);
             }
 
             await using var context = await _contextFactory.CreateDbContextAsync();
+
             var existingUser = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == dto.Id && u.UserRole == UserRole.Client);
 
-            if(existingUser is null)
+            if (existingUser is null)
             {
-
                 throw new KeyNotFoundException($"Client with ID {dto.Id} was not found.");
             }
 
-            // 2. Kontrola unikátnosti e-mailu (pokud ho změnil a nový už patří někomu jinému)
             bool emailExistsOtherUser = await context.Users
                 .AnyAsync(u => u.Email.ToLower() == normalizedEmail && u.Id != dto.Id);
 
@@ -95,16 +95,14 @@ namespace ProgressHub.Data.Services
                 throw new DuplicateEmailException(dto.Email);
             }
 
-            // Aktualizace profilových údajů
-            existingUser.FirstName = dto.FirstName;
-            existingUser.LastName = dto.LastName;
-            existingUser.Email = dto.Email;
+            // Ošetření konzistence: Trim jmen a uložení normalizovaného e-mailu
+            existingUser.FirstName = dto.FirstName.Trim();
+            existingUser.LastName = dto.LastName.Trim();
+            existingUser.Email = normalizedEmail; // <-- opraveno z dto.Email
             existingUser.DateOfBirth = dto.DateOfBirth;
             existingUser.Gender = dto.Gender;
             existingUser.FitnessGoal = dto.FitnessGoal;
             existingUser.HeightInCm = dto.HeightInCm;
-
-            // Aktualizace makro cílů
             existingUser.TargetCalories = dto.TargetCalories;
             existingUser.TargetProteinGrams = dto.TargetProteinGrams;
             existingUser.TargetCarbsGrams = dto.TargetCarbsGrams;
