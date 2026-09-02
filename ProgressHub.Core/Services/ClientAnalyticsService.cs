@@ -17,6 +17,9 @@ namespace ProgressHub.Core.Services
         {
             _timeProvider = timeProvider ?? TimeProvider.System;
         }
+
+       
+
     
         public ClientAnalyticsSummary CalculateSummary(User client, AnalyticsTimeWindow window = AnalyticsTimeWindow.Days14)
         {
@@ -48,14 +51,10 @@ namespace ProgressHub.Core.Services
                 ? Math.Round(last7DaysLogs.Average(l => l.Weight), 1)
                 : null;
 
-            
-            DateOnly windowStartDate = window switch
-            {
-                AnalyticsTimeWindow.AllTime => firstLog.Date,
-                _ => latestLog.Date.AddDays(-(int)window)
-            };
 
-            
+            DateOnly windowStartDate = GetWindowStartDate(sortedLogs, window, latestLog.Date);
+
+
             var periodLogs = sortedLogs
                 .Where(l => l.Date >= windowStartDate && l.Date <= latestLog.Date)
                 .ToList();
@@ -96,7 +95,16 @@ namespace ProgressHub.Core.Services
                 TotalLogsCount = totalCount
             };
         }
-
+        
+        private static DateOnly GetWindowStartDate(
+            IReadOnlyList<DailyLog> sortedLogs, AnalyticsTimeWindow window, DateOnly latestDate)
+        {
+            return window switch
+            {
+                AnalyticsTimeWindow.AllTime => sortedLogs[0].Date,
+                _ => latestDate.AddDays(-(int)window)
+            };
+        }
         private static (string text, string color) EvaluateDelta(FitnessGoal goal, double? delta, int logsInPeriod)
         {
             if (delta is null || logsInPeriod == 0)
@@ -141,6 +149,50 @@ namespace ProgressHub.Core.Services
             }
 
             return streak;
+        }
+
+
+        public IReadOnlyList<WeightTrendPoint> BuildWeightTrendSeries( User client, AnalyticsTimeWindow window = AnalyticsTimeWindow.Days14,int movingAverageDays = 7)
+        {
+            ArgumentNullException.ThrowIfNull(client);
+
+            if (movingAverageDays < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(movingAverageDays), "Moving average window must be at least 1 day.");
+            }
+
+            var sortedLogs = client.DailyLogs.OrderBy(l => l.Date).ToList();
+            if (sortedLogs.Count == 0)
+            {
+                return Array.Empty<WeightTrendPoint>();
+            }
+
+            var latestDate = sortedLogs[^1].Date;
+            var windowStartDate = GetWindowStartDate(sortedLogs, window, latestDate);
+
+            var windowedLogs = sortedLogs
+                .Where(l => l.Date >= windowStartDate && l.Date <= latestDate)
+                .ToList();
+
+            var points = new List<WeightTrendPoint>(windowedLogs.Count);
+
+            foreach (var log in windowedLogs)
+            {
+                // Trailing moving average pulls from the FULL history (sortedLogs), not just
+                // the windowed slice — so the first points in the window still get an accurate
+                // average instead of one artificially skewed by a truncated lookback.
+                var maStart = log.Date.AddDays(-(movingAverageDays - 1));
+                var maLogs = sortedLogs.Where(l => l.Date >= maStart && l.Date <= log.Date).ToList();
+
+                points.Add(new WeightTrendPoint
+                {
+                    Date = log.Date,
+                    Weight = log.Weight,
+                    MovingAverage = maLogs.Count > 0 ? Math.Round(maLogs.Average(l => l.Weight), 1) : null
+                });
+            }
+
+            return points;
         }
     }
 

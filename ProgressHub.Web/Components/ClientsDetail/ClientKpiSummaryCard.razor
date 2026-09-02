@@ -4,6 +4,7 @@
 @inject IClientAnalyticsService AnalyticsService
 
 
+
 <div class="row g-3 mb-4">
     <!-- Start Weight -->
     <div class="col-6 col-md-3">
@@ -33,9 +34,7 @@
             <div class="card-body p-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-muted small fw-semibold text-uppercase">Period Delta</span>
-                    <select class="form-select form-select-sm py-0 px-1 w-auto border-0 text-muted small fw-semibold bg-transparent"
-                            @bind="_selectedWindow"
-                            @bind:after="Recalculate">
+                    <select class="form-select form-select-sm py-0 px-1 w-auto border-0 text-muted small fw-semibold bg-transparent" value="@SelectedWindow" @onchange="HandleWindowChange">
                         <option value="@AnalyticsTimeWindow.Days14">14 days avg</option>
                         <option value="@AnalyticsTimeWindow.Month1">1 month avg</option>
                         <option value="@AnalyticsTimeWindow.Months3">3 months avg</option>
@@ -76,17 +75,24 @@
     [Parameter, EditorRequired]
     public User Client { get; set; } = null!;
 
-    private AnalyticsTimeWindow _selectedWindow = AnalyticsTimeWindow.Days14;
+    [Parameter]
+    public AnalyticsTimeWindow SelectedWindow { get; set; } = AnalyticsTimeWindow.Days14;
+
+    [Parameter]
+    public EventCallback<AnalyticsTimeWindow> SelectedWindowChanged { get; set; }
+    
     private ClientAnalyticsSummary? _summary;
 
-    protected override void OnParametersSet()
-    {
-        Recalculate();
-    }
+    protected override void OnParametersSet() => Recalculate();
 
-    private void Recalculate()
+    private void Recalculate() => _summary = AnalyticsService.CalculateSummary(Client, SelectedWindow);
+
+    private async Task HandleWindowChange(ChangeEventArgs e)
     {
-        _summary = AnalyticsService.CalculateSummary(Client, _selectedWindow);
+        if (Enum.TryParse<AnalyticsTimeWindow>(e.Value?.ToString(), out var parsed))
+        {
+            await SelectedWindowChanged.InvokeAsync(parsed);
+        }
     }
 
     private string PeriodDateRangeDisplay

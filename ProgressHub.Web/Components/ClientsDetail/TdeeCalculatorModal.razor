@@ -1,13 +1,14 @@
 ﻿@using ProgressHub.Core.Models.Enums
 @using ProgressHub.Core.Models
 @using ProgressHub.Core.Interfaces
+@using ProgressHub.Web.Components.Shared
 @using ProgressHub.Core.Services.MacroCalculator;
 @inject IMacroCalculatorService MacroCalculator;
 
 @if (IsOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow">
                 <div class="modal-header">
                     <h5 class="modal-title">TDEE & Macro Target Calculator</h5>
@@ -62,43 +63,32 @@
                             </div>
                         </div>
 
-                        <!-- Pravý sloupec: Výsledky z Core -->
+                        <!-- Pravý sloupec: Sjednocený výstup bez duplicit -->
                         <div class="col-md-6 ps-md-4">
                             <h6 class="text-muted text-uppercase small fw-bold mb-3">Calculated Output</h6>
-
                             @if (_result is not null && !IsProteinInvalid)
                             {
-                                <div class="d-flex justify-content-between mb-1 small">
-                                    <span>Basal Metabolic Rate (BMR):</span>
-                                    <strong>@_result.Bmr kcal</strong>
-                                </div>
-                                <div class="d-flex justify-content-between mb-3 small">
-                                    <span>Maintenance (TDEE):</span>
-                                    <strong>@_result.Tdee kcal</strong>
-                                </div>
+                                <div class="card border-0 bg-light p-3">
+                                    <h6 class="text-muted text-uppercase small fw-semibold mb-2">Energy Expenditure</h6>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="small">BMR:</span>
+                                        <strong>@_result.Bmr.ToString("N0") kcal</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <span class="small">TDEE:</span>
+                                        <strong>@_result.Tdee.ToString("N0") kcal</strong>
+                                    </div>
 
-                                <div class="alert alert-primary py-2 px-3 mb-3">
-                                    <div class="small text-muted">Recommended Daily Target:</div>
-                                    <div class="fs-4 fw-bold">@_result.TargetCalories kcal</div>
-                                </div>
+                                    <hr class="my-2" />
 
-                                <h6 class="text-muted text-uppercase small fw-bold mb-2">Macro Distribution</h6>
-                                <table class="table table-sm mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th>Protein (4 kcal/g)</th>
-                                            <td class="text-end fw-semibold">@_result.TargetProteinGrams g</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Fats (9 kcal/g, ~25%)</th>
-                                            <td class="text-end fw-semibold">@_result.TargetFatsGrams g</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Carbohydrates (Rest)</th>
-                                            <td class="text-end fw-semibold">@_result.TargetCarbsGrams g</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                    <h6 class="text-muted text-uppercase small fw-semibold mb-3">Target Nutrition Split</h6>
+
+                                    <MacroSplitChart ProteinGrams="_result.TargetProteinGrams"
+                                                     CarbsGrams="_result.TargetCarbsGrams"
+                                                     FatsGrams="_result.TargetFatsGrams"
+                                                     TotalCalories="_result.TargetCalories"
+                                                     Height="130" />
+                                </div>
                             }
                             else
                             {

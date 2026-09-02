@@ -1,5 +1,6 @@
 ﻿@page "/clients/{Id:int}"
 @using ProgressHub.Core.Interfaces
+@using ProgressHub.Web.Components.Shared
 @using ProgressHub.Core.Models
 @using ProgressHub.Core.Exceptions
 @using ProgressHub.Core.Models.DTOs.ClientDTOs
@@ -8,6 +9,8 @@
 @inject NavigationManager NavigationManager;
 @using ProgressHub.Web.Components.ClientsDetail;
 @inject IJSRuntime JSRuntime;
+@using ProgressHub.Core.Models.Enums
+@inject IClientAnalyticsService AnalyticsService
 @using ProgressHub.Core.Services.MacroCalculator;
 <PageTitle>Client Detail</PageTitle>
 
@@ -22,6 +25,7 @@ else if (_client is null)
 }
 else
 {
+    <!-- 1. Hlavička: Navigace, akční tlačítka a jméno -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <button class="btn btn-link px-0 text-decoration-none" @onclick="BackToList">&larr; Back to Clients</button>
         <div>
@@ -40,25 +44,50 @@ else
         <p class="text-muted">@_client.Email</p>
     </div>
 
-    <!-- KPI -->
-    <ClientKpiSummaryCard Client="_client" />
 
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
+    <!-- 2. Profil a Cíle (Biometrika a Makra vedle sebe) -->
+    <div class="row mb-4 g-3">
+        <div class="col-12 col-lg-6">
             <ClientBiometricsCard Client="_client" LatestLog="GetLatestLog()" />
         </div>
-        <div class="col-md-6 mb-3">
-            <ClientMacroCard Client="_client" />
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-light">
+                    <strong>Daily Macro Targets</strong>
+                </div>
+                <div class="card-body d-flex align-items-center">
+                    <div class="w-100">
+                        <MacroSplitChart ProteinGrams="_client.TargetProteinGrams"
+                                         CarbsGrams="_client.TargetCarbsGrams"
+                                         FatsGrams="_client.TargetFatsGrams"
+                                         TotalCalories="_client.TargetCalories" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 3. Analytika: KPI souhrn a trend váhy -->
+    <div class="mb-4">
+        <ClientKpiSummaryCard Client="_client" @bind-SelectedWindow="_selectedWindow" />
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <WeightTrendChart Points="GetWeightTrendPoints()" />
         </div>
     </div>
 
+    <!-- 4. Historie: Tabulka logů -->
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h4 class="mb-0">Daily Log History</h4>
         <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
     </div>
 
     <DailyLogsTable Logs="_client.DailyLogs" OnEdit="OpenEditLogModal" OnDelete="HandleDeleteLog" />
-
+    
+    
+    <!-- Modály -->
     <!-- Tdee Calculator -->
     <TdeeCalculatorModal IsOpen = "_showTdeeModal"
                      Client = "_client"
@@ -90,6 +119,11 @@ else
     private User? _client;
     private UpdateClientDto _editClientModel = new();
     private UpdateDailyLogDto _logModel = new();
+
+    private AnalyticsTimeWindow _selectedWindow = AnalyticsTimeWindow.Days14;
+
+    private IReadOnlyList<WeightTrendPoint> GetWeightTrendPoints() =>
+        _client is null ? Array.Empty<WeightTrendPoint>() : AnalyticsService.BuildWeightTrendSeries(_client, _selectedWindow);
 
     private bool _isLoading = true;
     private bool _isDeleting;

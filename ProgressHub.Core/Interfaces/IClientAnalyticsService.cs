@@ -11,5 +11,9 @@ namespace ProgressHub.Core.Interfaces
     public interface IClientAnalyticsService
     {
         ClientAnalyticsSummary CalculateSummary(User client, AnalyticsTimeWindow window = AnalyticsTimeWindow.Days14);
+
+        IReadOnlyList<WeightTrendPoint> BuildWeightTrendSeries(User client, AnalyticsTimeWindow window = AnalyticsTimeWindow.Days14, int movingAverageDays = 7);
+
+
     }
 }

@@ -1,0 +1,119 @@
+﻿@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex flex-column flex-sm-row align-items-center gap-3">
+    <div class="macro-doughnut-container" style="height:@(Height)px; width:@(Height)px;">
+        <canvas id="@_canvasId"></canvas>
+    </div>
+
+    <ul class="list-unstyled mb-0 flex-grow-1 w-100">
+        <li class="d-flex justify-content-between align-items-center mb-1">
+            <span><span class="macro-swatch" style="background:@ProteinColor"></span>Protein</span>
+            <span class="text-muted small">@ProteinGrams g &middot; @ProteinPct%</span>
+        </li>
+        <li class="d-flex justify-content-between align-items-center mb-1">
+            <span><span class="macro-swatch" style="background:@CarbsColor"></span>Carbs</span>
+            <span class="text-muted small">@CarbsGrams g &middot; @CarbsPct%</span>
+        </li>
+        <li class="d-flex justify-content-between align-items-center">
+            <span><span class="macro-swatch" style="background:@FatsColor"></span>Fats</span>
+            <span class="text-muted small">@FatsGrams g &middot; @FatsPct%</span>
+        </li>
+    </ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public int ProteinGrams { get; set; }
+    [Parameter, EditorRequired] public int CarbsGrams { get; set; }
+    [Parameter, EditorRequired] public int FatsGrams { get; set; }
+
+    /// Optional — falls back to the sum of grams×kcal-per-gram when not supplied.
+    [Parameter] public int? TotalCalories { get; set; }
+
+    /// Lets callers size this differently per placement (dashboard card vs. modal column).
+    [Parameter] public int Height { get; set; } = 160;
+
+    private const string ProteinColor = "#dc3545"; // red
+    private const string CarbsColor = "#0d6efd";    // blue
+    private const string FatsColor = "#ffc107";     // amber
+
+    private readonly string _canvasId = $"macro-chart-{Guid.NewGuid():N}";
+    private IJSObjectReference? _module;
+    private (int p, int c, int f, int? total) _lastRendered;
+
+    private int ProteinKcal => ProteinGrams * 4;
+    private int CarbsKcal => CarbsGrams * 4;
+    private int FatsKcal => FatsGrams * 9;
+    private int ComputedTotalKcal => ProteinKcal + CarbsKcal + FatsKcal;
+    private int DisplayTotalKcal => TotalCalories ?? ComputedTotalKcal;
+
+    private int ProteinPct => ComputedTotalKcal > 0 ? (int)Math.Round(ProteinKcal * 100.0 / ComputedTotalKcal) : 0;
+    private int CarbsPct => ComputedTotalKcal > 0 ? (int)Math.Round(CarbsKcal * 100.0 / ComputedTotalKcal) : 0;
+    private int FatsPct => ComputedTotalKcal > 0 ? (int)Math.Round(FatsKcal * 100.0 / ComputedTotalKcal) : 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/progressChart.js");
+        }
+
+        var current = (ProteinGrams, CarbsGrams, FatsGrams, TotalCalories);
+        if (_module is null || current == _lastRendered)
+        {
+            return;
+        }
+        _lastRendered = current;
+
+        await _module.InvokeVoidAsync("renderDoughnutChart", _canvasId, BuildChartConfig());
+    }
+
+    private object BuildChartConfig() => new
+    {
+        type = "doughnut",
+        data = new
+        {
+            labels = new[] { "Protein", "Carbs", "Fats" },
+            datasets = new object[]
+            {
+                new
+                {
+                    data = new[] { ProteinKcal, CarbsKcal, FatsKcal },
+                    backgroundColor = new[] { ProteinColor, CarbsColor, FatsColor },
+                    borderWidth = 0
+                }
+            }
+        },
+        options = new
+        {
+            responsive = true,
+            maintainAspectRatio = false,
+            cutout = "70%",
+            plugins = new
+            {
+                legend = new { display = false }, // custom HTML legend renders the real one
+                centerText = new
+                {
+                    text = $"{DisplayTotalKcal}",
+                    subtext = "kcal"
+                }
+            }
+        }
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("destroyChart", _canvasId);
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone — nothing to clean up.
+            }
+        }
+    }
+}
