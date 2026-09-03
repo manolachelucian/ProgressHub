@@ -84,8 +84,37 @@ else
         <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
     </div>
 
-    <DailyLogsTable Logs="_client.DailyLogs" OnEdit="OpenEditLogModal" OnDelete="HandleDeleteLog" />
-    
+    <DailyLogsTable Logs="_client.DailyLogs"
+                    OnEdit="OpenEditLogModal"
+                    OnDelete="HandleDeleteLog"
+                    OnAddDate="OpenAddLogForSpecificDate" />
+
+    <!-- 5. Profesionální Dashboard Footer -->
+    <footer class="mt-5 pt-4 pb-4 border-top text-muted small">
+        <div class="row align-items-center gy-3">
+            <div class="col-12 col-md-6 text-center text-md-start">
+                <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center justify-content-md-start">
+                    <span class="badge bg-light text-secondary border">Client ID: #@_client.Id</span>
+                    <span>&bull;</span>
+                    <span>Total Logs: <strong>@_client.DailyLogs.Count</strong></span>
+                    <span>&bull;</span>
+                    <span>Status: <span class="text-success fw-semibold">● Active Profile</span></span>
+                </div>
+                <div class="mt-1 text-secondary" style="font-size: 0.75rem;">
+                    ProgressHub Coaching System &bull; Synced @DateTime.Now.ToString("HH:mm")
+                </div>
+            </div>
+            <div class="col-12 col-md-6 text-center text-md-end">
+                <div class="d-flex align-items-center justify-content-center justify-content-md-end gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="PrintReport"> Print Summary </button>
+                    <button class="btn btn-light btn-sm border" @onclick="ScrollToTop">&uarr; Back to top</button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+
     
     <!-- Modály -->
     <!-- Tdee Calculator -->
@@ -137,6 +166,13 @@ else
 
 
     protected override async Task OnInitializedAsync() => await LoadClientAsync();
+
+
+    private void OpenAddLogForSpecificDate(DateOnly date)
+    {
+        OpenAddLogModal();
+        _logModel.Date = date;
+    }
 
     private async Task HandleApplyMacros(MacroCalculationResult result)
     {
@@ -349,6 +385,17 @@ else
                 _isDeleting = false;
             }
         }
+    }
+
+
+    private async Task ScrollToTop()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
+    }
+
+    private async Task PrintReport()
+    {
+        await JSRuntime.InvokeVoidAsync("window.print");
     }
 }
 
