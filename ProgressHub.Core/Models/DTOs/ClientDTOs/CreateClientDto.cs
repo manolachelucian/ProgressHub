@@ -25,6 +25,8 @@ namespace ProgressHub.Core.Models.DTOs.ClientDTOs
         [Required]
         public DateOnly DateOfBirth { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25));
 
+        public DateTime CreatedAt {  get; set; } = DateTime.UtcNow;
+
         public Gender Gender { get; set; } = Gender.Male;
         public FitnessGoal FitnessGoal { get; set; } = FitnessGoal.WeightLoss;
 

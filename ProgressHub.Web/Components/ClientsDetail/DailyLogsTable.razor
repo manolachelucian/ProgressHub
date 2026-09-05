@@ -3,9 +3,9 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousWeek">&larr; Previous</button>
+        <button class="btn btn-outline-warning btn-sm text-black" @onclick="PreviousWeek">&larr; Previous</button>
         <button class="btn btn-outline-secondary btn-sm" @onclick="CurrentWeek">This Week</button>
-        <button class="btn btn-outline-secondary btn-sm" @onclick="NextWeek">Next &rarr;</button>
+        <button class="btn btn-outline-primary btn-sm text-black" @onclick="NextWeek">Next &rarr;</button>
     </div>
     <span class="fw-semibold text-muted small">
         @_weekStart.ToString("dd MMM yyyy") – @_weekStart.AddDays(6).ToString("dd MMM yyyy")
@@ -44,23 +44,10 @@
                         <td>@log.ConsumedProteins</td>
                         <td>@log.ConsumedCarbs</td>
                         <td>@log.ConsumedFats</td>
-                        <td>
-                            @switch (log.TrainingType)
-                            {
-                                case TrainingType.RestDay:
-                                    <span class="badge bg-secondary">Rest</span>
-                                    break;
-                                case TrainingType.Cardio:
-                                    <span class="badge bg-warning text-dark">Cardio</span>
-                                    break;
-                                default:
-                                    <span class="badge bg-primary">@log.TrainingType</span>
-                                    break;
-                            }
-                        </td>
+                        <td>@log.TrainingType</td>
                         <td>@(log.Note ?? "—")</td>
                         <td class="text-end">
-                            <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)">Edit</button>
+                            <button class="btn btn-outline-success btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)">Edit</button>
                             <button class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete.InvokeAsync(log)">Delete</button>
                         </td>
                     </tr>
@@ -79,9 +66,7 @@
                         <td><span class="badge bg-light text-muted border">No entry</span></td>
                         <td>—</td>
                         <td class="text-end">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OnAddDate.InvokeAsync(currentDate)">
-                                + Add
-                            </button>
+                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OnAddDate.InvokeAsync(currentDate)">+ Add</button>
                         </td>
                     </tr>
                 }

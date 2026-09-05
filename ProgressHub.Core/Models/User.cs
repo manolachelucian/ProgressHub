@@ -60,7 +60,7 @@ namespace ProgressHub.Core.Models
         public int TargetFatsGrams { get; set; }
 
         // 1:N relation to logs
-        public List<DailyLog> DailyLogs { get; set; } =new();
+        public ICollection<DailyLog> DailyLogs { get; set; } = new List<DailyLog>();
 
         //Method for get age
         public int GetAge()

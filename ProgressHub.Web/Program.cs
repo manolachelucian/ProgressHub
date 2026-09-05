@@ -49,66 +49,15 @@ namespace ProgressHub.Web
                 await using var dbContext = await contextFactory.CreateDbContextAsync();
                 await dbContext.Database.MigrateAsync();
 
-                // Pokud v DB ještě nejsou žádní uživatelé, vložíme ukázková data
+                // Pokud je DB prázdná, vygenerujeme data přes tvůj DatabaseSeeder
                 if (!await dbContext.Users.AnyAsync())
                 {
-                    var client1 = new User
-                    {
-                        FirstName = "Jan",
-                        LastName = "Novák",
-                        Email = "jan.novak@fitness.cz",
-                        UserRole = UserRole.Client,
-                        HeightInCm = 182,
-                        DateOfBirth = new DateOnly(1995, 5, 14),
-                        TargetCalories = 2400,
-                        TargetProteinGrams = 180,
-                        TargetCarbsGrams = 240,
-                        TargetFatsGrams = 70,
-                        DailyLogs = new List<DailyLog>
-            {
-                new()
-                {
-                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2)),
-                    Weight = 84.5,
-                    ConsumedCalories = 2350,
-                    ConsumedProteins = 175,
-                    ConsumedCarbs = 230,
-                    ConsumedFats = 68,
-                    Note = "Dobrý trénink nohou"
-                },
-                new()
-                {
-                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
-                    Weight = 84.1,
-                    ConsumedCalories = 2410,
-                    ConsumedProteins = 182,
-                    ConsumedCarbs = 245,
-                    ConsumedFats = 72,
-                    Note = "Rest day"
-                }
-            }
-                    };
-
-                    var client2 = new User
-                    {
-                        FirstName = "Martina",
-                        LastName = "Králová",
-                        Email = "martina@seznam.cz",
-                        UserRole = UserRole.Client,
-                        HeightInCm = 168,
-                        DateOfBirth = new DateOnly(1998, 11, 3),
-                        TargetCalories = 1800,
-                        TargetProteinGrams = 130,
-                        TargetCarbsGrams = 180,
-                        TargetFatsGrams = 55
-                    };
-
-                    dbContext.Users.AddRange(client1, client2);
+                    var seededClients = DatabaseSeeder.GenerateClients(30,90);
+                    await dbContext.Users.AddRangeAsync(seededClients);
                     await dbContext.SaveChangesAsync();
                 }
 
             }
-
             await app.RunAsync();
         }
     }

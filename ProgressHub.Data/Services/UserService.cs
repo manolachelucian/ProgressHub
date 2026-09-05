@@ -132,7 +132,8 @@ namespace ProgressHub.Data.Services
                 LatestWeight = u.DailyLogs
                     .OrderByDescending(l => l.Date)
                     .Select(l => (double?)l.Weight)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+                CreatedAt = u.CreatedAt
             })
             .ToListAsync();
         }
@@ -168,6 +169,7 @@ namespace ProgressHub.Data.Services
                 LastName = dto.LastName.Trim(),
                 Email = normalizedEmail,
                 DateOfBirth = dto.DateOfBirth,
+                CreatedAt = dto.CreatedAt,
                 Gender = dto.Gender,
                 FitnessGoal = dto.FitnessGoal,
                 HeightInCm = dto.HeightInCm,

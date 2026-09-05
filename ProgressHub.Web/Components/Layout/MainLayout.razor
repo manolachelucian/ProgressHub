@@ -6,14 +6,19 @@
     </div>
 
     <main>
-        <article class="content px-4">
+
+        <article class="content px-4 flex-grow-1">
             @Body
         </article>
+        <footer class="app-footer py-3 px-4 border-top text-muted small bg-white">
+            <div class="container-fluid p-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span><strong>ProgressHub</strong> &copy; @DateTime.UtcNow.Year &bull; Coaching Platform</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">System Online</span>
+                    <span class="text-secondary">v1.0</span>
+                </div>
+            </div>
+        </footer>
     </main>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>

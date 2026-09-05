@@ -83,40 +83,30 @@ else
         <h4 class="mb-0">Daily Log History</h4>
         <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
     </div>
+    <!-- Modály -->
 
-    <DailyLogsTable Logs="_client.DailyLogs"
+    <DailyLogsTable Logs="_client.DailyLogs.ToList()"
                     OnEdit="OpenEditLogModal"
                     OnDelete="HandleDeleteLog"
                     OnAddDate="OpenAddLogForSpecificDate" />
 
-    <!-- 5. Profesionální Dashboard Footer -->
-    <footer class="mt-5 pt-4 pb-4 border-top text-muted small">
-        <div class="row align-items-center gy-3">
-            <div class="col-12 col-md-6 text-center text-md-start">
-                <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center justify-content-md-start">
-                    <span class="badge bg-light text-secondary border">Client ID: #@_client.Id</span>
+    <div class="card shadow-sm border-0 mt-5 mb-4 bg-light">
+        <div class="card-body p-3">
+            <div class="row align-items-center gy-2">
+                <div class="col-12 col-md-7 d-flex flex-wrap align-items-center gap-2 text-muted small">
+                    <span class="badge bg-white text-secondary border">Client ID: #@_client.Id</span>
                     <span>&bull;</span>
                     <span>Total Logs: <strong>@_client.DailyLogs.Count</strong></span>
                     <span>&bull;</span>
                     <span>Status: <span class="text-success fw-semibold">● Active Profile</span></span>
                 </div>
-                <div class="mt-1 text-secondary" style="font-size: 0.75rem;">
-                    ProgressHub Coaching System &bull; Synced @DateTime.Now.ToString("HH:mm")
-                </div>
-            </div>
-            <div class="col-12 col-md-6 text-center text-md-end">
-                <div class="d-flex align-items-center justify-content-center justify-content-md-end gap-2">
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="PrintReport"> Print Summary </button>
-                    <button class="btn btn-light btn-sm border" @onclick="ScrollToTop">&uarr; Back to top</button>
+                <div class="col-12 col-md-5 d-flex justify-content-md-end gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="PrintReport">Print Summary</button>
+                    <button class="btn btn-white btn-sm border" @onclick="ScrollToTop">&uarr; Back to top</button>
                 </div>
             </div>
         </div>
-    </footer>
-
-
-
-    
-    <!-- Modály -->
+    </div>
     <!-- Tdee Calculator -->
     <TdeeCalculatorModal IsOpen = "_showTdeeModal"
                      Client = "_client"
@@ -345,7 +335,7 @@ else
     {
         var confirmed = await JSRuntime.InvokeAsync<bool>(
             "confirm",
-            $"Are you sure you want to delete the log for {log.Date:yyyy-MM-dd}?");
+            $"Are you sure you want to delete the log for {log.Date:dd-MM-yyyy}?");
 
         if (confirmed)
         {
@@ -388,14 +378,14 @@ else
     }
 
 
-    private async Task ScrollToTop()
-    {
-        await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
-    }
-
     private async Task PrintReport()
     {
         await JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private async Task ScrollToTop()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
     }
 }
 
