@@ -50,7 +50,7 @@ namespace ProgressHub.Web
                 await dbContext.Database.MigrateAsync();
 
                 // Pokud je DB prázdná, vygenerujeme data přes tvůj DatabaseSeeder
-                if (!await dbContext.Users.AnyAsync())
+                if (app.Environment.IsDevelopment() && !await dbContext.Users.AnyAsync())
                 {
                     var seededClients = DatabaseSeeder.GenerateClients(30,90);
                     await dbContext.Users.AddRangeAsync(seededClients);

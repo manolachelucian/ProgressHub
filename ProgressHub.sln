@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressHub.Web", "Progress
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressHub.Tests", "ProgressHub.Tests\ProgressHub.Tests.csproj", "{F93E75B5-9360-4BDF-A62A-A90C16E7A0EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressHub.API", "ProgressHub.API\ProgressHub.API.csproj", "{D80FB6A9-BA2B-4B41-95AF-7545529B8966}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{F93E75B5-9360-4BDF-A62A-A90C16E7A0EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F93E75B5-9360-4BDF-A62A-A90C16E7A0EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F93E75B5-9360-4BDF-A62A-A90C16E7A0EA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D80FB6A9-BA2B-4B41-95AF-7545529B8966}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D80FB6A9-BA2B-4B41-95AF-7545529B8966}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D80FB6A9-BA2B-4B41-95AF-7545529B8966}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D80FB6A9-BA2B-4B41-95AF-7545529B8966}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

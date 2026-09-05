@@ -1,4 +1,5 @@
 ﻿@page "/clients"
+@implements IDisposable
 @using ProgressHub.Core.Interfaces
 @using ProgressHub.Core.Models.DTOs.ClientDTOs
 @using ProgressHub.Web.Components.Clients
@@ -25,14 +26,14 @@
             <input type="text"
                    class="form-control"
                    placeholder="Search by name..."
-                   @bind="_searchTerm"
-                   @bind:event="oninput" />
+                   value="@_searchTerm"
+                   @oninput="HandleSearchInput" />
             @if (!string.IsNullOrWhiteSpace(_searchTerm))
             {
                 <button class="btn btn-outline-secondary" @onclick="ClearSearch">&times;</button>
             }
         </div>
-        <select class="form-select" style="max-width: 190px;" @bind="_selectedSort">
+        <select class="form-select" style="max-width: 190px;" value="@_selectedSort" @onchange="HandleSortChange">
             <option value="@ClientSortOption.NewestFirst">Newest First</option>
             <option value="@ClientSortOption.OldestFirst">Oldest First</option>
             <option value="@ClientSortOption.NameAsc">Name (A &rarr; Z)</option>
@@ -56,7 +57,7 @@
         <p class="text-muted mt-2 mb-0">Loading clients...</p>
     </div>
 }
-else if (!FilteredAndSortedClients.Any())
+else if (_visibleClients.Count == 0)
 {
     @if (string.IsNullOrWhiteSpace(_searchTerm))
     {
@@ -117,10 +118,10 @@ else
         <!-- Stránkovací lišta -->
         <div class="card-footer bg-white border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div class="d-flex align-items-center gap-2 text-muted small">
-                <span>Showing @GetShowingRangeText() of @FilteredCount clients</span>
+                <span>Showing @GetShowingRangeText() of @_visibleClients.Count clients</span>
                 <span class="mx-1">&bull;</span>
                 <span>Per page:</span>
-                <select class="form-select form-select-sm" style="width: 75px;" @bind="PageSize">
+                <select class="form-select form-select-sm" style="width: 75px;" value="@_pageSize" @onchange="HandlePageSizeChange">
                     <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
@@ -168,6 +169,16 @@ else
     }
 
     private List<ClientListItemDto> _clients = new();
+
+    // The materialized, already-filtered-and-sorted view. Recomputed exactly once,
+    // by RecalculateVisibleClients(), whenever data/search/sort actually changes —
+    // never re-derived from a LINQ pipeline during rendering.
+    private List<ClientListItemDto> _visibleClients = new();
+
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private const int SearchDebounceMs = 300;
+
     private bool _isLoading = true;
     private bool _showAddClientModal;
     private string _searchTerm = string.Empty;
@@ -177,49 +188,13 @@ else
     private int _currentPage = 1;
     private int _pageSize = 10;
 
-    private int PageSize
-    {
-        get => _pageSize;
-        set
-        {
-            if (_pageSize != value)
-            {
-                _pageSize = value;
-                _currentPage = 1;
-            }
-        }
-    }
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(_visibleClients.Count / (double)_pageSize));
 
-    private IEnumerable<ClientListItemDto> FilteredAndSortedClients
-    {
-        get
-        {
-            var query = _clients.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(_searchTerm))
-            {
-                query = query.Where(c => c.FullName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                         c.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
-            }
-
-            return _selectedSort switch
-            {
-                ClientSortOption.OldestFirst => query.OrderBy(c => c.CreatedAt),
-                ClientSortOption.NameAsc => query.OrderBy(c => c.FullName),
-                ClientSortOption.NameDesc => query.OrderByDescending(c => c.FullName),
-                _ => query.OrderByDescending(c => c.CreatedAt)
-            };
-        }
-    }
-
-    private int FilteredCount => FilteredAndSortedClients.Count();
-
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredCount / (double)_pageSize));
-
-    private IEnumerable<ClientListItemDto> PagedClients =>
-        FilteredAndSortedClients
+    private List<ClientListItemDto> PagedClients =>
+        _visibleClients
             .Skip((_currentPage - 1) * _pageSize)
-            .Take(_pageSize);
+            .Take(_pageSize)
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -233,10 +208,80 @@ else
         {
             _clients = await UserService.GetAllClientsAsync();
             _currentPage = 1;
+            RecalculateVisibleClients();
         }
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    // The single place the filter+sort pipeline actually runs. Called whenever
+    // _clients, _searchTerm, or _selectedSort changes — never from a getter.
+    private void RecalculateVisibleClients()
+    {
+        var query = _clients.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            query = query.Where(c => c.FullName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                     c.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        query = _selectedSort switch
+        {
+            ClientSortOption.OldestFirst => query.OrderBy(c => c.CreatedAt),
+            ClientSortOption.NameAsc => query.OrderBy(c => c.FullName),
+            ClientSortOption.NameDesc => query.OrderByDescending(c => c.FullName),
+            _ => query.OrderByDescending(c => c.CreatedAt)
+        };
+
+        _visibleClients = query.ToList();
+    }
+
+    private async Task HandleSearchInput(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? string.Empty;
+
+        // Cancel any debounce still waiting from a previous keystroke — only the
+        // most recent keystroke's delay should ever actually fire.
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        try
+        {
+            await Task.Delay(SearchDebounceMs, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return; // superseded by a newer keystroke — do nothing
+        }
+
+        _currentPage = 1;
+        RecalculateVisibleClients();
+        StateHasChanged();
+        // Task.Delay's continuation resumes on the circuit's
+        // sync context, but an explicit call here is clearer
+        // and safe to call even if a render was already due.
+    }
+
+    private void HandleSortChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<ClientSortOption>(e.Value?.ToString(), out var parsed))
+        {
+            _selectedSort = parsed;
+            RecalculateVisibleClients();
+        }
+    }
+
+    private void HandlePageSizeChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var parsed) && parsed != _pageSize)
+        {
+            _pageSize = parsed;
+            _currentPage = 1;
         }
     }
 
@@ -250,9 +295,9 @@ else
 
     private string GetShowingRangeText()
     {
-        if (FilteredCount == 0) return "0";
+        if (_visibleClients.Count == 0) return "0";
         var from = ((_currentPage - 1) * _pageSize) + 1;
-        var to = Math.Min(_currentPage * _pageSize, FilteredCount);
+        var to = Math.Min(_currentPage * _pageSize, _visibleClients.Count);
         return $"{from}-{to}";
     }
 
@@ -273,8 +318,15 @@ else
 
     private void ClearSearch()
     {
+        _searchDebounceCts?.Cancel();
         _searchTerm = string.Empty;
         _currentPage = 1;
+        RecalculateVisibleClients();
+    }
+    public void Dispose()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
     }
 
     private async Task HandleDeleteClientAsync(ClientListItemDto client)

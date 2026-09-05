@@ -31,7 +31,7 @@
             @for (int i = 0; i < 7; i++)
             {
                 var currentDate = _weekStart.AddDays(i);
-                var log = Logs.FirstOrDefault(l => l.Date == currentDate);
+                var log = _logsByDate.GetValueOrDefault(currentDate); 
 
                 if (log is not null)
                 {
@@ -94,6 +94,7 @@
     [Parameter] public EventCallback<DailyLog> OnEdit { get; set; }
     [Parameter] public EventCallback<DailyLog> OnDelete { get; set; }
     [Parameter] public EventCallback<DateOnly> OnAddDate { get; set; }
+    private Dictionary<DateOnly, DailyLog> _logsByDate = new();
 
     private DateOnly _weekStart;
 
@@ -103,6 +104,10 @@
     protected override void OnInitialized()
     {
         CurrentWeek();
+    }
+    protected override void OnParametersSet()
+    {
+        _logsByDate = Logs.ToDictionary(l => l.Date); 
     }
 
     private void CurrentWeek()
