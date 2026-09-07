@@ -1,14 +1,11 @@
 ﻿using FluentAssertions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
+using ProgressHub.Core.Models.DTOs.ClientDTOs;
 using ProgressHub.Core.Models.Enums;
 using ProgressHub.Data.Services;
 using ProgressHub.Tests.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ProgressHub.Tests.Services.UserServiceTests
 {
@@ -36,7 +33,9 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                     UserRole = UserRole.Client,
                     DailyLogs = new List<DailyLog>
             {
-                new() { Date = new DateOnly(2026, 3, 1), Weight = 82.0, ConsumedCalories = 2400 }
+                new() { 
+                    Date = new DateOnly(2026, 3, 1), Weight = 82.0, ConsumedCalories = 2400 
+                }
             }
                 };
                 seed.Users.Add(client);
@@ -141,8 +140,6 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             clientDto.FirstName.Should().Be("Client");
             clientDto.LastName.Should().Be("One");
             clientDto.FullName.Should().Be("Client One");
-            clientDto.TargetCalories.Should().Be(2000);
-            clientDto.LatestWeight.Should().Be(80.5); 
         }
 
 
@@ -175,6 +172,81 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             var result = await userService.GetClientByIdAsync(coachId);
 
             result.Should().BeNull();
+        }
+
+
+        [Theory]
+        [InlineData("+420", "777111222", "+420777111222")]
+        [InlineData("+421", "901234567", "+421901234567")]
+        [InlineData("+49", "15123456789", "+4915123456789")]
+        public async Task AddClientAsync_ShouldSavePhoneNumber_AndThrowOnDuplicate(string prefix,string localNumber,string expectedFullNumber)
+        {
+            // Arrange
+            var factory = TestDbContextFactory.Create();
+            var sut = new UserService(factory);
+
+            var client1 = new CreateClientDto
+            {
+                FirstName = "First",
+                LastName = "Client",
+                Email = $"client_{localNumber}_1@test.cz",
+                PhonePrefixCode = prefix,
+                LocalPhoneNumber = localNumber
+            };
+
+            var clientWithDuplicatePhone = new CreateClientDto
+            {
+                FirstName = "Second",
+                LastName = "Client",
+                Email = $"client_{localNumber}_2@test.cz",
+                PhonePrefixCode = prefix,
+                LocalPhoneNumber = localNumber // Stejné číslo
+            };
+
+            // Act
+            await sut.AddClientAsync(client1);
+
+            // Assert 1: Číslo se uložilo ve správném formátu E.164
+            var clients = await sut.GetAllClientsAsync();
+            var saved = clients.First(c => c.Email == client1.Email);
+            saved.PhoneNumber.Should().Be(expectedFullNumber);
+
+            // Assert 2: Pokus o uložení duplicity vyhodí výjimku
+            var act = async () => await sut.AddClientAsync(clientWithDuplicatePhone);
+            await act.Should().ThrowAsync<InvalidOperationException>();
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task AddClientAsync_ShouldAllowMultipleClients_WithEmptyPhoneNumber(string? emptyPhone)
+        {
+            // Arrange
+            var factory = TestDbContextFactory.Create();
+            var sut = new UserService(factory);
+
+            var client1 = new CreateClientDto
+            {
+                FirstName = "Jan",
+                LastName = "BezCisla",
+                Email = "jan.bezcisla@test.cz",
+                LocalPhoneNumber = emptyPhone
+            };
+
+            var client2 = new CreateClientDto
+            {
+                FirstName = "Petr",
+                LastName = "TakyBezCisla",
+                Email = "petr.bezcisla@test.cz",
+                LocalPhoneNumber = emptyPhone
+            };
+
+            // Act & Assert: Obě vložení musí projít bez výjimky
+            await sut.AddClientAsync(client1);
+            var act = async () => await sut.AddClientAsync(client2);
+
+            await act.Should().NotThrowAsync();
         }
 
     }

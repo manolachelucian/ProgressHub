@@ -2,6 +2,7 @@
 @using ProgressHub.Core.Models.Enums
 @using ProgressHub.Core.Exceptions
 @using ProgressHub.Core.Interfaces
+@using ProgressHub.Core.Constants
 @using ProgressHub.Core.Models
 @inject IUserService UserService
 
@@ -42,6 +43,20 @@
                             <InputText class="form-control" @bind-Value="_model.Email" />
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number (Optional)</label>
+                            <div class="input-group">
+                                <InputSelect class="form-select flex-grow-0" style="width: 130px;" @bind-Value="_model.PhonePrefixCode">
+                                    @foreach (var (prefix, label) in PhonePrefix.PrefixOptions)
+                                    {
+                                        <option value="@prefix">@label</option>
+                                    }
+                                </InputSelect>
+                                <InputText class="form-control" placeholder="777123456" @bind-Value="_model.LocalPhoneNumber" />
+                            </div>
+                            <ValidationMessage For="@(() => _model.LocalPhoneNumber)" class="text-danger small" />
+                        </div>
+
                         <div class="row">
                             <div class="col mb-3">
                                 <label class="form-label">Date of Birth</label>
@@ -73,25 +88,7 @@
                                 <label class="form-label">Height (cm)</label>
                                 <InputNumber class="form-control" @bind-Value="_model.HeightInCm" />
                             </div>
-                            <div class="col mb-3">
-                                <label class="form-label">Target Calories</label>
-                                <InputNumber class="form-control" @bind-Value="_model.TargetCalories" />
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col mb-3">
-                                <label class="form-label">Protein (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_model.TargetProteinGrams" />
-                            </div>
-                            <div class="col mb-3">
-                                <label class="form-label">Carbs (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_model.TargetCarbsGrams" />
-                            </div>
-                            <div class="col mb-3">
-                                <label class="form-label">Fats (g)</label>
-                                <InputNumber class="form-control" @bind-Value="_model.TargetFatsGrams" />
-                            </div>
+                           
                         </div>
 
                         <div class="modal-footer px-0 pb-0">
@@ -137,22 +134,7 @@
 
         try
         {
-            var userEntity = new CreateClientDto
-            {
-                FirstName = _model.FirstName,
-                LastName = _model.LastName,
-                Email = _model.Email,
-                DateOfBirth = _model.DateOfBirth,
-                Gender = _model.Gender,
-                FitnessGoal = _model.FitnessGoal,
-                HeightInCm = _model.HeightInCm,
-                TargetCalories = _model.TargetCalories,
-                TargetProteinGrams = _model.TargetProteinGrams,
-                TargetCarbsGrams = _model.TargetCarbsGrams,
-                TargetFatsGrams = _model.TargetFatsGrams
-            };
-
-            await UserService.AddClientAsync(userEntity);
+            await UserService.AddClientAsync(_model);
             await OnClientAdded.InvokeAsync();
             await CloseModal();
         }
@@ -163,6 +145,10 @@
         catch (DuplicateEmailException)
         {
             _errorMessage = "A client with this email address already exists.";
+        }
+        catch (InvalidOperationException ex) 
+        {
+            _errorMessage = ex.Message;
         }
         catch (Exception)
         {

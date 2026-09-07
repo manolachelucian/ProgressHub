@@ -22,7 +22,7 @@ namespace ProgressHub.Data
         public DbSet<DailyLog> DailyLog => Set<DailyLog>(); // entity Dayily Log
 
 
-        public ProgressHubDbContext(DbContextOptions<ProgressHubDbContext> options) : base(options) { }
+        public ProgressHubDbContext(DbContextOptions<ProgressHubDbContext> options) : base(options){ }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,6 +33,11 @@ namespace ProgressHub.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.PhoneNumber)
+                .IsUnique()
+                .HasFilter("[PhoneNumber] IS NOT NULL");
 
             modelBuilder.Entity<DailyLog>()
                 .HasOne(d => d.User)

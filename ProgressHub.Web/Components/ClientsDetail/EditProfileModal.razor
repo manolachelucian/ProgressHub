@@ -1,5 +1,4 @@
 ﻿@using ProgressHub.Core.Models.Enums
-@using ProgressHub.Core.Models
 @using ProgressHub.Core.Models.DTOs.ClientDTOs
 
 @if (IsOpen)
@@ -30,6 +29,21 @@
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <InputText class="form-control" @bind-Value="Model.Email" />
+                        </div>
+
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number (Optional)</label>
+                            <div class="input-group">
+                                <InputSelect class="form-select flex-grow-0 " style="width: 130px;" @bind-Value="Model.PhonePrefixCode">
+                                    @foreach (var (prefix, label) in PhonePrefix.PrefixOptions)
+                                    {
+                                        <option value="@prefix">@label</option>
+                                    }
+                                </InputSelect>
+                                <InputText class="form-control" placeholder="777123456" @bind-Value="Model.LocalPhoneNumber" />
+                            </div>
+                            <ValidationMessage For="@(() => Model.LocalPhoneNumber)" class="text-danger small" />
                         </div>
 
                         <div class="row">

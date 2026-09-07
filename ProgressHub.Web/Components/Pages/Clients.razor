@@ -9,7 +9,7 @@
 
 <PageTitle>Clients - ProgressHub</PageTitle>
 
-<!-- Horní panel: KPI, Vyhledávání a Akce -->
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div class="card shadow-sm border-0" style="min-width: 200px;">
         <div class="card-body p-3 d-flex align-items-center justify-content-between">
@@ -82,8 +82,7 @@ else
                     <tr>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Target Calories</th>
-                        <th>Latest Weight</th>
+                        <th>Phone</th>
                         <th>Joined</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -94,8 +93,20 @@ else
                         <tr style="cursor: pointer;" @onclick="() => NavigateToDetail(client.Id)">
                             <td><strong>@client.FullName</strong></td>
                             <td>@client.Email</td>
-                            <td>@client.TargetCalories kcal</td>
-                            <td>@FormatWeight(client.LatestWeight)</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(client.PhoneNumber))
+                                {
+                                    <a href="tel:@client.PhoneNumber"
+                                       class="text-decoration-none text-body"
+                                       @onclick:stopPropagation="true">
+                                        @client.PhoneNumber
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                             <td class="text-muted small">@client.CreatedAt.ToString("dd-MM-yyyy")</td>
                             <td class="text-end">
                                 <button class="btn btn-outline-primary btn-sm me-1"
@@ -114,7 +125,6 @@ else
                 </tbody>
             </table>
         </div>
-
         <!-- Stránkovací lišta -->
         <div class="card-footer bg-white border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div class="d-flex align-items-center gap-2 text-muted small">
@@ -282,6 +292,7 @@ else
         {
             _pageSize = parsed;
             _currentPage = 1;
+            StateHasChanged();
         }
     }
 
@@ -313,8 +324,6 @@ else
     private void NavigateToDetail(int clientId) =>
         NavigationManager.NavigateTo($"/clients/{clientId}");
 
-    private static string FormatWeight(double? weight) =>
-        weight.HasValue ? $"{weight.Value:0.0} kg" : "—";
 
     private void ClearSearch()
     {

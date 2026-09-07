@@ -28,7 +28,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             var factory = TestDbContextFactory.Create();
             int clientId;
 
-            var client = new User
+           var client = new User
             {
                 FirstName = "Test",
                 LastName = "Test",
@@ -43,9 +43,9 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 seed.Users.Add(client);
                 await seed.SaveChangesAsync();
                 clientId = client.Id; // Získáme automaticky vygenerované ID
-            }
+           }
 
-            IUserService userService = new UserService(factory);
+          IUserService userService = new UserService(factory);
 
             // Act
             await userService.RemoveClientAsync(clientId);

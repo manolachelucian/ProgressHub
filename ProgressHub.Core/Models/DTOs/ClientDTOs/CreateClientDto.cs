@@ -1,10 +1,7 @@
-﻿using ProgressHub.Core.Models.Enums;
-using System;
-using System.Collections.Generic;
+﻿using ProgressHub.Core.Constants;
+using ProgressHub.Core.Models.Enums;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ProgressHub.Core.Models.DTOs.ClientDTOs
 {
@@ -20,7 +17,16 @@ namespace ProgressHub.Core.Models.DTOs.ClientDTOs
 
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Invalid email format.")]
+
         public string Email { get; set; } = string.Empty;
+
+
+        public string PhonePrefixCode { get; set; } = PhonePrefix.DefaultPrefix;
+
+        [RegularExpression(@"^[0-9]{6,12}$", ErrorMessage = "Enter a valid phone number without spaces or prefix.")]
+        public string? LocalPhoneNumber { get; set; }
+        public string? FullPhoneNumber =>
+        string.IsNullOrWhiteSpace(LocalPhoneNumber) ? null : $"{PhonePrefixCode}{LocalPhoneNumber.Trim()}";
 
         [Required]
         public DateOnly DateOfBirth { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-25));
@@ -34,15 +40,15 @@ namespace ProgressHub.Core.Models.DTOs.ClientDTOs
         public int HeightInCm { get; set; } = 175;
 
         [Range(1000, 10000, ErrorMessage = "Target calories must be realistic.")]
-        public int TargetCalories { get; set; } = 2000;
+        public int TargetCalories { get; set; } = 1000;
 
         [Range(0, 500)]
-        public int TargetProteinGrams { get; set; }
+        public int TargetProteinGrams { get; set; } = 0;
 
         [Range(0, 1000)]
-        public int TargetCarbsGrams { get; set; }
+        public int TargetCarbsGrams { get; set; } = 0;
 
         [Range(0, 300)]
-        public int TargetFatsGrams { get; set; }
+        public int TargetFatsGrams { get; set; } = 0;
     }
 }

@@ -18,7 +18,7 @@ namespace ProgressHub.Data.Services
         /// 
         /// </summary>
         /// <param name="contextFactory"></param>
-        public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
+       public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
         }
@@ -49,6 +49,7 @@ namespace ProgressHub.Data.Services
 
             // Načteme pouze samotného klienta bez zbytečného .Include(u => u.DailyLogs)
             var client = await context.Users
+                .Include(u => u.DailyLogs )
                 .FirstOrDefaultAsync(u => u.Id == clientId && u.UserRole == UserRole.Client);
 
             if (client is null)
@@ -95,11 +96,23 @@ namespace ProgressHub.Data.Services
                 throw new DuplicateEmailException(dto.Email);
             }
 
+            if (!string.IsNullOrWhiteSpace(dto.FullPhoneNumber))
+            {
+                var phoneExists = await context.Users
+                    .AnyAsync(u => u.PhoneNumber == dto.FullPhoneNumber && u.Id != dto.Id);
+
+                if (phoneExists)
+                {
+                    throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
+                }
+            }
+
             // Ošetření konzistence: Trim jmen a uložení normalizovaného e-mailu
             existingUser.FirstName = dto.FirstName.Trim();
             existingUser.LastName = dto.LastName.Trim();
-            existingUser.Email = normalizedEmail; // <-- opraveno z dto.Email
+            existingUser.Email = normalizedEmail; 
             existingUser.DateOfBirth = dto.DateOfBirth;
+            existingUser.PhoneNumber = dto.FullPhoneNumber;
             existingUser.Gender = dto.Gender;
             existingUser.FitnessGoal = dto.FitnessGoal;
             existingUser.HeightInCm = dto.HeightInCm;
@@ -128,11 +141,7 @@ namespace ProgressHub.Data.Services
                 FirstName = u.FirstName,
                 LastName = u.LastName,
                 Email = u.Email,
-                TargetCalories = u.TargetCalories,
-                LatestWeight = u.DailyLogs
-                    .OrderByDescending(l => l.Date)
-                    .Select(l => (double?)l.Weight)
-                    .FirstOrDefault(),
+                PhoneNumber = u.PhoneNumber,
                 CreatedAt = u.CreatedAt
             })
             .ToListAsync();
@@ -163,6 +172,17 @@ namespace ProgressHub.Data.Services
                 throw new DuplicateEmailException(dto.Email ?? string.Empty);
             }
 
+            if (!string.IsNullOrWhiteSpace(dto.FullPhoneNumber))
+            {
+                var phoneExists = await context.Users
+                    .AnyAsync(u => u.PhoneNumber == dto.FullPhoneNumber);
+
+                if (phoneExists)
+                {
+                    throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
+                }
+            }
+
             var clientEntity = new User
             {
                 FirstName = dto.FirstName.Trim(),
@@ -170,6 +190,7 @@ namespace ProgressHub.Data.Services
                 Email = normalizedEmail,
                 DateOfBirth = dto.DateOfBirth,
                 CreatedAt = dto.CreatedAt,
+                PhoneNumber = dto.FullPhoneNumber,
                 Gender = dto.Gender,
                 FitnessGoal = dto.FitnessGoal,
                 HeightInCm = dto.HeightInCm,

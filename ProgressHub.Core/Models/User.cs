@@ -25,16 +25,18 @@ namespace ProgressHub.Core.Models
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string Email { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+
 
         // Not user-entered via forms — populated by an auth/hashing service.
         // No [Required] here on purpose; see question below about auth scope.
         public string PasswordHash { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public UserRole UserRole { get; set; } = UserRole.Client;
-        public Gender Gender { get; set; } = Gender.Male;
+        public UserRole UserRole { get; set; } =UserRole.Client;
+        public Gender Gender { get; set; } =Gender.Male;
 
         // goal for client
-        public FitnessGoal FitnessGoal { get; set; } = FitnessGoal.None;
+        public FitnessGoal FitnessGoal { get; set; } =FitnessGoal.None;
 
         // Physical parameters for BMI etc.
 

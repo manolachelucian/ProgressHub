@@ -70,11 +70,19 @@ namespace ProgressHub.Tests.Services.UserServiceTests
             await using var context = await factory.CreateDbContextAsync();
             var stored = await context.Users.SingleAsync(u => u.Id == clientId);
 
-            // Zkontroluje, že všechna pole z UpdateClientDto se promítla do entity
-            stored.Should().BeEquivalentTo(updateDto, options => options.ExcludingMissingMembers());
-
-            // Ověří, že role nebyla změněna a zůstala Client
+            stored.FirstName.Should().Be(updateDto.FirstName);
+            stored.LastName.Should().Be(updateDto.LastName);
+            stored.Email.Should().Be(updateDto.Email);
+            stored.DateOfBirth.Should().Be(updateDto.DateOfBirth);
+            stored.Gender.Should().Be(updateDto.Gender);
+            stored.FitnessGoal.Should().Be(updateDto.FitnessGoal);
+            stored.HeightInCm.Should().Be(updateDto.HeightInCm);
+            stored.TargetCalories.Should().Be(updateDto.TargetCalories);
+            stored.TargetProteinGrams.Should().Be(updateDto.TargetProteinGrams);
+            stored.TargetCarbsGrams.Should().Be(updateDto.TargetCarbsGrams);
+            stored.TargetFatsGrams.Should().Be(updateDto.TargetFatsGrams);
             stored.UserRole.Should().Be(UserRole.Client);
+            stored.CreatedAt.Should().Be(originalClient.CreatedAt);
         }
 
 

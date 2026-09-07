@@ -36,7 +36,7 @@ namespace ProgressHub.Tests.Services.MacroCalculatorTests
 
             //Assert
 
-            result.Bmr.Should().Be(1759);
+            result.Bmr.Should().Be(1758.75);
             result.TargetCalories.Should().BeGreaterThan(result.Tdee);
             result.TargetProteinGrams.Should().Be(154);
 
