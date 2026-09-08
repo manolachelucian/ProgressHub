@@ -23,7 +23,7 @@ namespace ProgressHub.Core.Services.MacroCalculator
                     $"Protein must be between {MinProteinPerKg} and {MaxProteinPerKg} g/kg.");
             }
 
-            // Mifflin-St Jeor vzorec
+
             double bmrBase = (10 * input.WeightInKg) + (6.25 * input.HeightInCm) - (5 * input.AgeInYears);
             double bmr = input.Gender switch
             {
