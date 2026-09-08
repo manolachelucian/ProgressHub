@@ -1,11 +1,11 @@
 ﻿using Bogus;
+using ProgressHub.Core.Constants;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.Enums;
 namespace ProgressHub.Data
 {
     public class DatabaseSeeder
     {
-
         public static List<User> GenerateClients(int clientCount , int daysOfLogs)
         {
             var random = new Random(42);
@@ -16,6 +16,16 @@ namespace ProgressHub.Data
                 .RuleFor(u => u.Gender, f => f.PickRandom(Gender.Male,Gender.Female))
                 .RuleFor(u => u.CreatedAt, f => f.Date.Recent(45))
                 .RuleFor(u => u.HeightInCm, f => f.Random.Int(155, 205))
+                .RuleFor(u => u.PhoneNumber, f =>
+                {
+                    if (f.Random.Bool(0.15f))
+                    {
+                        return null;
+                    }
+                    var prefix = f.PickRandom(PhonePrefix.PrefixOptions.Keys.ToArray());
+                    var localNumber = 770_000_000 + f.IndexFaker;
+                    return $"{prefix}{localNumber}";
+                })
                 .RuleFor(u => u.DateOfBirth, f => DateOnly.FromDateTime(f.Date.Between(DateTime.UtcNow.AddYears(-42), DateTime.UtcNow.AddYears(-20))))
                 .RuleFor(u => u.FitnessGoal, f => f.PickRandom<FitnessGoal>())
                 .RuleFor(u => u.TargetCalories, 1200)
@@ -38,7 +48,6 @@ namespace ProgressHub.Data
                     if (random.NextDouble() < 0.15 && i != 0) continue;
 
                     var logDate = today.AddDays(-i);
-                    
                     
                     startWeight += (random.NextDouble() - 0.55) * 0.4;
 
