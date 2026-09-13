@@ -8,7 +8,18 @@
     <main>
 
         <article class="content px-4 flex-grow-1">
-            @Body
+            <ErrorBoundary @ref="_errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <div class="alert alert-danger shadow-sm m-3" role="alert">
+                        <h5 class="alert-heading">Something went wrong</h5>
+                        <p class="mb-2">An unexpected error occurred while displaying this page.</p>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="Recover">Reload this page</button>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </article>
         <footer class="app-footer py-3 px-4 border-top text-muted small bg-white">
             <div class="container-fluid p-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -21,4 +32,10 @@
         </footer>
     </main>
 </div>
+@code {
+    private ErrorBoundary? _errorBoundary;
 
+    protected override void OnParametersSet() => _errorBoundary?.Recover();
+
+    private void Recover() => _errorBoundary?.Recover();
+}

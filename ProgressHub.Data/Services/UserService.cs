@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProgressHub.Core.Exceptions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
@@ -13,14 +14,16 @@ namespace ProgressHub.Data.Services
     public class UserService : IUserService
     {
         private readonly IDbContextFactory<ProgressHubDbContext> _contextFactory;
+        private readonly ILogger<UserService> _logger;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="contextFactory"></param>
-       public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory)
+        public UserService(IDbContextFactory<ProgressHubDbContext> contextFactory, ILogger<UserService> logger)
         {
             _contextFactory = contextFactory;
+            _logger = logger;
         }
 
         /// <summary>
@@ -31,9 +34,19 @@ namespace ProgressHub.Data.Services
         public async Task<User?> GetClientByIdAsync(int id)
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.Users
-                .Include(u => u.DailyLogs)
-                .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
+
+            try
+            {
+                return await context.Users
+                    .Include(u => u.DailyLogs)
+                    .FirstOrDefaultAsync(u => u.Id == id && u.UserRole == UserRole.Client);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load client {clientId}", id);
+                throw;
+            }
         }
 
 
@@ -54,11 +67,20 @@ namespace ProgressHub.Data.Services
 
             if (client is null)
             {
+                _logger.LogWarning("Attempted to remove client {ClientId}, but no matching client was found.", clientId);
                 throw new KeyNotFoundException($"Client with ID {clientId} was not found.");
             }
 
-            context.Users.Remove(client);
-            await context.SaveChangesAsync();
+            try
+            {
+                context.Users.Remove(client);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to remove client {ClientId}", clientId);
+                throw;
+            }
         }
 
         /// <summary>
@@ -85,6 +107,7 @@ namespace ProgressHub.Data.Services
 
             if (existingUser is null)
             {
+                _logger.LogWarning("Attempted to update client {ClientId}, but no matching client was found.", dto.Id);
                 throw new KeyNotFoundException($"Client with ID {dto.Id} was not found.");
             }
 
@@ -93,6 +116,7 @@ namespace ProgressHub.Data.Services
 
             if (emailExistsOtherUser)
             {
+                _logger.LogInformation("Rejected client update for Id {ClientId}: email {Email} already in use.", dto.Id, normalizedEmail);
                 throw new DuplicateEmailException(dto.Email);
             }
 
@@ -103,6 +127,7 @@ namespace ProgressHub.Data.Services
 
                 if (phoneExists)
                 {
+                    _logger.LogInformation($"Phone: {dto.FullPhoneNumber} is rejected, phone number is already in use ");
                     throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
                 }
             }
@@ -121,7 +146,15 @@ namespace ProgressHub.Data.Services
             existingUser.TargetCarbsGrams = dto.TargetCarbsGrams;
             existingUser.TargetFatsGrams = dto.TargetFatsGrams;
 
-            await context.SaveChangesAsync();
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save updated profile for client {ClientId}", dto.Id);
+                throw;
+            }
         }
 
         /// <summary>
@@ -132,19 +165,29 @@ namespace ProgressHub.Data.Services
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
 
-            return await context.Users
-            .Where(u => u.UserRole == UserRole.Client)
-            .OrderBy(u => u.LastName)
-            .Select(u => new ClientListItemDto
+            try
             {
-                Id = u.Id,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Email = u.Email,
-                PhoneNumber = u.PhoneNumber,
-                CreatedAt = u.CreatedAt
-            })
-            .ToListAsync();
+                
+                return await context.Users
+                   .Where(u => u.UserRole == UserRole.Client)
+                   .OrderBy(u => u.LastName)
+                   .Select(u => new ClientListItemDto
+                   {
+                       Id = u.Id,
+                       FirstName = u.FirstName,
+                       LastName = u.LastName,
+                       Email = u.Email,
+                       PhoneNumber = u.PhoneNumber,
+                       CreatedAt = u.CreatedAt
+                   })
+                   .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load client list.");
+                throw;
+            }
+           
         }
 
         /// <summary>
@@ -159,6 +202,7 @@ namespace ProgressHub.Data.Services
             var normalizedEmail = dto.Email?.Trim().ToLowerInvariant() ?? string.Empty;
             if (!EmailValidator.IsValid(normalizedEmail))
             {
+                _logger.LogInformation("Rejected new client: invalid email format ({Email}).", dto.Email);
                 throw new InvalidEmailFormatException(dto.Email ?? string.Empty);
             }
 
@@ -169,6 +213,7 @@ namespace ProgressHub.Data.Services
 
             if(emailExist)
             {
+                _logger.LogInformation("Rejected new client: email {Email} already in use.", normalizedEmail);
                 throw new DuplicateEmailException(dto.Email ?? string.Empty);
             }
 
@@ -179,6 +224,7 @@ namespace ProgressHub.Data.Services
 
                 if (phoneExists)
                 {
+                    _logger.LogInformation("Rejected new client: Phone number {Phone number} already in use.", dto.FullPhoneNumber);
                     throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
                 }
             }
@@ -200,8 +246,18 @@ namespace ProgressHub.Data.Services
                 TargetFatsGrams = dto.TargetFatsGrams,
                 UserRole = UserRole.Client
             };
-            context.Users.Add(clientEntity);
-            await context.SaveChangesAsync();
+
+
+            try
+            {
+                context.Users.Add(clientEntity);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save new client with email {Email}", normalizedEmail);
+                throw;
+            }
 
         }
 
@@ -222,6 +278,7 @@ namespace ProgressHub.Data.Services
             var userExists = await context.Users.AnyAsync(u => u.Id == dto.UserId);
             if (!userExists)
             {
+                _logger.LogWarning("Attempted to add a daily log for non-existent user {UserId}.", dto.UserId);
                 throw new KeyNotFoundException($"Cannot add daily log: no user with Id {dto.UserId} exists.");
             }
 
@@ -255,7 +312,15 @@ namespace ProgressHub.Data.Services
                 existing.Note = dto.Note;
             }
 
-            await context.SaveChangesAsync();
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save daily log for user {UserId} on {Date}", dto.UserId, dto.Date);
+                throw;
+            }
 
         }
 
@@ -275,6 +340,7 @@ namespace ProgressHub.Data.Services
             var existingLog = await context.DailyLog.FirstOrDefaultAsync(l => l.Id == dto.Id);
             if (existingLog is null)
             {
+                _logger.LogWarning("Attempted to update daily log {LogId}, but it was not found.", dto.Id);
                 throw new KeyNotFoundException($"DailyLog with ID {dto.Id} was not found.");
             }
 
@@ -287,7 +353,15 @@ namespace ProgressHub.Data.Services
             existingLog.TrainingType = dto.TrainingType;
             existingLog.Note = dto.Note;
 
-            await context.SaveChangesAsync();
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save updated daily log {LogId}", dto.Id);
+                throw;
+            }
         }
 
         /// <summary>
@@ -300,16 +374,24 @@ namespace ProgressHub.Data.Services
         {
             await using var context = await _contextFactory.CreateDbContextAsync();
 
-            var log = await context.DailyLog
-                .FirstOrDefaultAsync(l => l.Id == dailyLogId);
+            var log = await context.DailyLog.FirstOrDefaultAsync(l => l.Id == dailyLogId);
 
             if (log is null)
             {
+                _logger.LogWarning("Attempted to remove daily log {LogId}, but it was not found.", dailyLogId);
                 throw new KeyNotFoundException($"DailyLog with ID {dailyLogId} was not found.");
             }
 
-            context.DailyLog.Remove(log);
-            await context.SaveChangesAsync();
+            try
+            {
+                context.DailyLog.Remove(log);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to remove daily log {LogId}", dailyLogId);
+                throw;
+            }
         }
 
 

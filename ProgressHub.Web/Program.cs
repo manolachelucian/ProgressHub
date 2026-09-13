@@ -16,6 +16,11 @@ namespace ProgressHub.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            //logging
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.AddDebug();
+
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
