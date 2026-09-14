@@ -45,44 +45,56 @@ else
     </div>
 
 
-    <!-- 2. Profil a Cíle (Biometrika a Makra vedle sebe) -->
-    <div class="row mb-4 g-3">
-        <div class="col-12 col-lg-6">
-            <ClientBiometricsCard Client="_client" LatestLog="GetLatestLog()" />
-        </div>
-        <div class="col-12 col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-light">
-                    <strong>Daily Macro Targets</strong>
+    <ErrorBoundary @ref="_contentErrorBoundary">
+        <ChildContent>
+            <div class="row mb-4 g-3">
+                <div class="col-12 col-lg-6">
+                    <ClientBiometricsCard Client="_client" LatestLog="GetLatestLog()" />
                 </div>
-                <div class="card-body d-flex align-items-center">
-                    <div class="w-100">
-                        <MacroSplitChart ProteinGrams="_client.TargetProteinGrams"
-                                         CarbsGrams="_client.TargetCarbsGrams"
-                                         FatsGrams="_client.TargetFatsGrams"
-                                         TotalCalories="_client.TargetCalories" />
+                <div class="col-12 col-lg-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-light">
+                            <strong>Daily Macro Targets</strong>
+                        </div>
+                        <div class="card-body d-flex align-items-center">
+                            <div class="w-100">
+                                <MacroSplitChart ProteinGrams="_client.TargetProteinGrams"
+                                                 CarbsGrams="_client.TargetCarbsGrams"
+                                                 FatsGrams="_client.TargetFatsGrams"
+                                                 TotalCalories="_client.TargetCalories" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <!-- 3. Analytika: KPI souhrn a trend váhy -->
+            <div class="mb-4">
+                <ClientKpiSummaryCard Client="_client" @bind-SelectedWindow="_selectedWindow" />
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-12">
+                    <WeightTrendChart Points="GetWeightTrendPoints()" />
+                </div>
+            </div>
+
+            <!-- 4. Historie: Tabulka logů -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Daily Log History</h4>
+                <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
+            </div>
+        </ChildContent>
+        <ErrorContent>
+            <div class="alert alert-danger shadow-sm" role="alert">
+                <h5 class="alert-heading">This section couldn't be displayed</h5>
+                <p class="mb-2">Something went wrong loading this client's details. Try again, or head back to the client list.</p>
+                <button class="btn btn-outline-danger btn-sm me-2" @onclick="RecoverContent">Try again</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="BackToList">Back to Clients</button>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary> 
     
-    <!-- 3. Analytika: KPI souhrn a trend váhy -->
-    <div class="mb-4">
-        <ClientKpiSummaryCard Client="_client" @bind-SelectedWindow="_selectedWindow" />
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <WeightTrendChart Points="GetWeightTrendPoints()" />
-        </div>
-    </div>
-
-    <!-- 4. Historie: Tabulka logů -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h4 class="mb-0">Daily Log History</h4>
-        <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
-    </div>
     <!-- Modály -->
 
     <DailyLogsTable Logs="_client.DailyLogs.ToList()"
@@ -98,7 +110,6 @@ else
                     <span>&bull;</span>
                     <span>Total Logs: <strong>@_client.DailyLogs.Count</strong></span>
                     <span>&bull;</span>
-                    <span>Status: <span class="text-success fw-semibold">● Active Profile</span></span>
                 </div>
                 <div class="col-12 col-md-5 d-flex justify-content-md-end gap-2">
                     <button class="btn btn-outline-secondary btn-sm" @onclick="PrintReport">Print Summary</button>
@@ -138,6 +149,9 @@ else
     private User? _client;
     private UpdateClientDto _editClientModel = new();
     private UpdateDailyLogDto _logModel = new();
+
+    private ErrorBoundary? _contentErrorBoundary;
+    private void RecoverContent() => _contentErrorBoundary?.Recover();
 
     private AnalyticsTimeWindow _selectedWindow = AnalyticsTimeWindow.Days14;
 
@@ -190,8 +204,9 @@ else
             _showTdeeModal = false;
             await LoadClientAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to apply calculated macros for client {ClientId}", _client.Id);
             _submitError = "Failed to update target macros.";
         }
     }
@@ -254,8 +269,9 @@ else
         {
             _profileError = "A client with this email address already exists.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to update profile for client {ClientId}", _editClientModel.Id);
             _profileError = "Failed to update profile. Please check inputs and try again.";
         }
         
@@ -321,8 +337,9 @@ else
         {
             _submitError = "The record or client was not found.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to save daily log for client {ClientId}", Id);
             _submitError = "Failed to save log. Please try again.";
         }
         finally
@@ -344,8 +361,9 @@ else
                 await UserService.RemoveDailyLogAsync(log.Id);
                 await LoadClientAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.LogError(ex, "Failed to delete daily log {LogId}", log.Id);
                 _submitError = "Failed to delete log. Please try again.";
             }
         }
@@ -366,8 +384,9 @@ else
                 await UserService.RemoveClientAsync(_client.Id);
                 NavigationManager.NavigateTo("/clients");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.LogError(ex, "Failed to delete daily log {LogId}", _logModel.Id);
                 _submitError = "Failed to delete client. Please try again.";
             }
             finally

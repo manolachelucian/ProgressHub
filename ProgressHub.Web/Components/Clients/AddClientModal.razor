@@ -5,6 +5,7 @@
 @using ProgressHub.Core.Constants
 @using ProgressHub.Core.Models
 @inject IUserService UserService
+@inject ILogger<AddClientModal> Logger;
 
 @if (IsOpen)
 {
@@ -150,8 +151,9 @@
         {
             _errorMessage = ex.Message;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to add new client.");
             _errorMessage = "An unexpected error occurred. Please try again.";
         }
         finally
