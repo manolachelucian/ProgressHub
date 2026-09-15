@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.DTOs.ClientDTOs;
@@ -30,7 +31,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             var clientDto = new CreateClientDto
             {
@@ -93,7 +94,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 await seed.SaveChangesAsync();
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
             var logDto = new CreateDailyLogDto
             {
                 UserId = client.Id,
@@ -128,7 +129,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         public async Task AddDailyLogAsync_ShouldThrowKeyNotFoundException_WhenUserDoesNotExist()
         {
             var factory = TestDbContextFactory.Create();
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var logDto = new CreateDailyLogDto
             {
@@ -172,7 +173,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 await seed.SaveChangesAsync();
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
             var date = new DateOnly(2026, 8, 25);
 
             var initialDto = new CreateDailyLogDto

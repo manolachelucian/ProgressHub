@@ -12,4 +12,9 @@ namespace ProgressHub.Core.Exceptions
         public DuplicateEmailException(string email)
             : base($"A client with email '{email}' already exists.") { }
     }
+    public class DuplicatePhoneNumberException : Exception
+    {
+        public DuplicatePhoneNumberException(string phoneNumber)
+            : base($"A client with phone number '{phoneNumber}' already exists.") { }
+    }
 }

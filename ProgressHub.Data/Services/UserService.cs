@@ -128,7 +128,7 @@ namespace ProgressHub.Data.Services
                 if (phoneExists)
                 {
                     _logger.LogInformation($"Phone: {dto.FullPhoneNumber} is rejected, phone number is already in use ");
-                    throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
+                    throw new DuplicatePhoneNumberException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
                 }
             }
 
@@ -225,7 +225,7 @@ namespace ProgressHub.Data.Services
                 if (phoneExists)
                 {
                     _logger.LogInformation("Rejected new client: Phone number {Phone number} already in use.", dto.FullPhoneNumber);
-                    throw new InvalidOperationException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
+                    throw new DuplicatePhoneNumberException($"Phone number '{dto.FullPhoneNumber}' is already assigned to another client.");
                 }
             }
 

@@ -33,9 +33,9 @@
     /// Lets callers size this differently per placement (dashboard card vs. modal column).
     [Parameter] public int Height { get; set; } = 160;
 
-    private const string ProteinColor = "#dc3545"; // red
-    private const string CarbsColor = "#0d6efd";    // blue
-    private const string FatsColor = "#ffc107";     // amber
+    private const string ProteinColor = "#B3392C"; // muted brick red
+    private const string CarbsColor = "#2E6B9E";    // muted blue (kept distinct from the accent green, which is reserved for "on track")
+    private const string FatsColor = "#C07A2B";     // muted amber
 
     private readonly string _canvasId = $"macro-chart-{Guid.NewGuid():N}";
     private IJSObjectReference? _module;

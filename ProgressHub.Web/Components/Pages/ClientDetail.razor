@@ -28,15 +28,11 @@ else
 {
    
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-link px-0 text-decoration-none" @onclick="BackToList">&larr; Back to Clients</button>
+        <button class="btn btn-link px-0 text-decoration-none" @onclick="BackToList" style="color: var(--ph-ink-soft);">&larr; Back to Clients</button>
         <div>
-            <button class="btn btn-outline-primary btn-sm me-2" @onclick="() => _showTdeeModal = true">
-                Calculator
-            </button>
+            <button class="btn btn-ph-primary btn-sm me-2" @onclick="() => _showTdeeModal = true">Calculator</button>
             <button class="btn btn-outline-secondary btn-sm me-2" @onclick="OpenEditProfileModal">Edit Profile</button>
-            <button class="btn btn-outline-danger btn-sm" @onclick="HandleDeleteClient" disabled="@_isDeleting">
-                @(_isDeleting ? "Deleting..." : "Delete Client")
-            </button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="HandleDeleteClient" disabled="@_isDeleting">@(_isDeleting ? "Deleting..." : "Delete Client")</button>
         </div>
     </div>
 
@@ -47,22 +43,21 @@ else
 
     <ErrorBoundary @ref="_contentErrorBoundary">
         <ChildContent>
-            <div class="row mb-4 g-3">
+            <div class="row g-3 mb-4">
+                <!-- Levá karta: Zúžená na 4 sloupce (na velkém displeji na 3) -->
                 <div class="col-12 col-lg-6">
                     <ClientBiometricsCard Client="_client" LatestLog="GetLatestLog()" />
                 </div>
+
+                <!-- Pravá karta s grafem: Rozšířená na zbývající prostor -->
                 <div class="col-12 col-lg-6">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-light">
-                            <strong>Daily Macro Targets</strong>
-                        </div>
-                        <div class="card-body d-flex align-items-center">
-                            <div class="w-100">
-                                <MacroSplitChart ProteinGrams="_client.TargetProteinGrams"
-                                                 CarbsGrams="_client.TargetCarbsGrams"
-                                                 FatsGrams="_client.TargetFatsGrams"
-                                                 TotalCalories="_client.TargetCalories" />
-                            </div>
+                    <div class="ph-card h-100">
+                        <div class="ph-card-body d-flex flex-column justify-content-between">
+                            <div class="ph-section-title">Daily macro targets</div>
+                            <MacroSplitChart ProteinGrams="_client.TargetProteinGrams"
+                                             CarbsGrams="_client.TargetCarbsGrams"
+                                             FatsGrams="_client.TargetFatsGrams"
+                                             TotalCalories="_client.TargetCalories" />
                         </div>
                     </div>
                 </div>
@@ -81,8 +76,8 @@ else
 
             <!-- 4. Historie: Tabulka logů -->
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h4 class="mb-0">Daily Log History</h4>
-                <button class="btn btn-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
+                <h4 class="mb-0" style="color: var(--ph-ink);">Daily log history</h4>
+                <button class="btn btn-ph-primary btn-sm" @onclick="OpenAddLogModal">+ Add Daily Log</button>
             </div>
         </ChildContent>
         <ErrorContent>
@@ -386,7 +381,7 @@ else
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Failed to delete daily log {LogId}", _logModel.Id);
+                Logger.LogError(ex, "Failed to delete daily log {LogId}", _client.Id);
                 _submitError = "Failed to delete client. Please try again.";
             }
             finally

@@ -2,12 +2,27 @@
    1. Design Tokens & CSS Variables
    ========================================================================== */
 :root {
-    --ph-primary: #006bb7;
-    --ph-bg-main: #f8f9fa;
+    --ph-ink: #14171C;
+    --ph-ink-soft: #565B64;
+    --ph-surface: #F7F6F3;
+    --ph-card: #FFFFFF;
+    --ph-border: #E7E4DD;
+    --ph-accent: #2E9E63;
+    --ph-accent-ink: #1F7449;
+    --ph-accent-soft: #E3F3EA;
+    --ph-warn: #C07A2B;
+    --ph-warn-soft: #FBEFE0;
+    --ph-danger: #B3392C;
+    --ph-danger-soft: #FAEAE7;
+    --ph-radius-sm: 8px;
+    --ph-radius-md: 12px;
+    --ph-shadow-card: 0 1px 2px rgba(20, 23, 28, 0.04), 0 4px 16px rgba(20, 23, 28, 0.06);
+    --ph-primary: #14171C;
+    --ph-bg-main: #F7F6F3;
     --ph-sidebar-width: 250px;
-    --ph-sidebar-bg: #1a1e24;
+    --ph-sidebar-bg: #14171C;
     --ph-topbar-height: 3.5rem;
-    --ph-border-color: #dee2e6;
+    --ph-border-color: #E7E4DD;
 }
 
 /* ==========================================================================
@@ -18,12 +33,12 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: var(--ph-bg-main);
-    color: #212529;
+    background-color: var(--ph-surface);
+    color: var(--ph-ink);
 }
 
 a, .btn-link {
-    color: var(--ph-primary);
+    color: var(--ph-accent-ink);
 }
 
 /* ==========================================================================
@@ -42,13 +57,13 @@ main {
     flex: 1 1 auto;
     min-width: 0;
     min-height: 100vh;
-    background-color: var(--ph-bg-main);
+    background-color: var(--ph-surface);
 }
 
 .top-row {
     height: var(--ph-topbar-height);
-    background-color: #ffffff;
-    border-bottom: 1px solid var(--ph-border-color);
+    background-color: var(--ph-card);
+    border-bottom: 1px solid var(--ph-border);
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -56,16 +71,16 @@ main {
 }
 
 article.content {
-    flex: 1 0 auto; /* Roztáhne obsah přes veškerý volný prostor */
+    flex: 1 0 auto;
     padding-top: 1.5rem;
     padding-bottom: 2rem;
 }
 
 footer.app-footer {
-    flex-shrink: 0; /* Zabrání smrštění patičky */
-    margin-top: auto; /* Přirazí patičku na dno */
-    background-color: #ffffff;
-    border-top: 1px solid var(--ph-border-color);
+    flex-shrink: 0;
+    margin-top: auto;
+    background-color: var(--ph-card);
+    border-top: 1px solid var(--ph-border);
 }
 
 /* ==========================================================================
@@ -116,21 +131,166 @@ footer.app-footer {
 }
 
 /* ==========================================================================
-   6. Component Helpers (Sticky Tables & Lists)
+   6. ProgressHub Component System (cards, metrics, labels)
    ========================================================================== */
-/* Zajištění neprůhlednosti sticky hlavičky při skrolování seznamu klientů */
+.ph-card {
+    background: var(--ph-card);
+    border: 1px solid var(--ph-border);
+    border-radius: var(--ph-radius-md);
+    box-shadow: var(--ph-shadow-card);
+}
+
+.ph-card-body {
+    padding: 1.25rem;
+}
+
+.ph-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ph-ink);
+    margin-bottom: 0.85rem;
+}
+
+.ph-label {
+    font-size: 0.8rem;
+    color: var(--ph-ink-soft);
+}
+
+.ph-metric {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--ph-ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+
+.ph-metric-sm {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--ph-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.ph-metric-unit {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ph-ink-soft);
+    margin-left: 0.15rem;
+}
+
+/* KPI stat card — neutral by default; a directional stripe is applied only
+   where the number actually carries a trend (see .ph-stripe-*) */
+.ph-stat-card {
+    background: var(--ph-card);
+    border: 1px solid var(--ph-border);
+    border-left: 3px solid var(--ph-border);
+    border-radius: var(--ph-radius-sm);
+    padding: 0.9rem 1rem;
+    height: 100%;
+}
+
+.ph-stripe-positive {
+    border-left-color: var(--ph-accent);
+}
+
+.ph-stripe-warn {
+    border-left-color: var(--ph-warn);
+}
+
+.ph-stripe-negative {
+    border-left-color: var(--ph-danger);
+}
+
+.ph-text-positive {
+    color: var(--ph-accent-ink);
+}
+
+.ph-text-warn {
+    color: var(--ph-warn);
+}
+
+.ph-text-negative {
+    color: var(--ph-danger);
+}
+
+.ph-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+
+.ph-badge-positive {
+    background: var(--ph-accent-soft);
+    color: var(--ph-accent-ink);
+}
+
+.ph-badge-warn {
+    background: var(--ph-warn-soft);
+    color: var(--ph-warn);
+}
+
+.ph-badge-negative {
+    background: var(--ph-danger-soft);
+    color: var(--ph-danger);
+}
+
+.ph-badge-neutral {
+    background: var(--ph-surface);
+    color: var(--ph-ink-soft);
+    border: 1px solid var(--ph-border);
+}
+
+/* Primary action — the controlled accent green, used sparingly for the
+   page's actual primary actions (not every button) */
+.btn-ph-primary {
+    background-color: var(--ph-accent);
+    border-color: var(--ph-accent);
+    color: #fff;
+}
+
+    .btn-ph-primary:hover,
+    .btn-ph-primary:focus {
+        background-color: var(--ph-accent-ink);
+        border-color: var(--ph-accent-ink);
+        color: #fff;
+    }
+
+/* ==========================================================================
+   7. Component Helpers (Sticky Tables & Lists)
+   ========================================================================== */
 .table-responsive thead.sticky-top th {
-    background-color: #f8f9fa;
+    background-color: var(--ph-surface);
     z-index: 2;
-    border-bottom: 2px solid var(--ph-border-color);
+    border-bottom: 2px solid var(--ph-border);
 }
 
 .table-hover tbody tr {
     transition: background-color 0.15s ease-in-out;
 }
 
+.ph-table thead th {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ph-ink-soft);
+    text-transform: none;
+    border-bottom: 1px solid var(--ph-border);
+    background: transparent;
+}
+
+.ph-table tbody tr.ph-row-empty {
+    color: var(--ph-ink-soft);
+}
+
+.ph-table tfoot td {
+    border-top: 2px solid var(--ph-accent);
+    background: var(--ph-accent-soft);
+    font-weight: 600;
+}
+
 /* ==========================================================================
-   7. Blazor Framework UI
+   8. Blazor Framework UI
    ========================================================================== */
 #blazor-error-ui {
     background: #ffecb5;

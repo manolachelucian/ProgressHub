@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.DTOs.DailyLogDTOs;
 using ProgressHub.Core.Models.Enums;
@@ -39,7 +40,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 clientId = client.Id;
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var updateDto = new UpdateDailyLogDto
             {
@@ -91,7 +92,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 logId = client.DailyLogs.First().Id;
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             await sut.RemoveDailyLogAsync(logId);

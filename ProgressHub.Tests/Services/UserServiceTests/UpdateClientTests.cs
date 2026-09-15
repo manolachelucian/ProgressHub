@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.DTOs.ClientDTOs;
 using ProgressHub.Core.Models.Enums;
@@ -45,7 +46,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 clientId = originalClient.Id;
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var updateDto = new UpdateClientDto
             {
@@ -95,7 +96,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var nonExistentClientDto = new UpdateClientDto
             {
@@ -138,7 +139,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 coachId = coach.Id;
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var updateAttemptDto = new UpdateClientDto
             {

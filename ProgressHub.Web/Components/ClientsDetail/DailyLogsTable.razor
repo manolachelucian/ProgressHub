@@ -3,92 +3,93 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-warning btn-sm text-black" @onclick="PreviousWeek">&larr; Previous</button>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousWeek">&larr; Previous</button>
         <button class="btn btn-outline-secondary btn-sm" @onclick="CurrentWeek">This Week</button>
-        <button class="btn btn-outline-primary btn-sm text-black" @onclick="NextWeek">Next &rarr;</button>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="NextWeek">Next &rarr;</button>
     </div>
-    <span class="fw-semibold text-muted small">
+    <span class="ph-label fw-semibold" >
         @_weekStart.ToString("dd MMM yyyy") – @_weekStart.AddDays(6).ToString("dd MMM yyyy")
     </span>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>Day / Date</th>
-                <th>Weight (kg)</th>
-                <th>Calories</th>
-                <th>Protein (g)</th>
-                <th>Carbs (g)</th>
-                <th>Fats (g)</th>
-                <th>Training</th>
-                <th>Note</th>
-                <th class="text-end">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (int i = 0; i < 7; i++)
-            {
-                var currentDate = _weekStart.AddDays(i);
-                var log = _logsByDate.GetValueOrDefault(currentDate); 
-
-                if (log is not null)
-                {
-                    <tr>
-                        <td>
-                            <strong>@currentDate.DayOfWeek.ToString().Substring(0, 3)</strong>, @currentDate.ToString("dd-MM-yyyy")
-                        </td>
-                        <td>@log.Weight.ToString("0.0")</td>
-                        <td>@log.ConsumedCalories</td>
-                        <td>@log.ConsumedProteins</td>
-                        <td>@log.ConsumedCarbs</td>
-                        <td>@log.ConsumedFats</td>
-                        <td>@log.TrainingType</td>
-                        <td>@(log.Note ?? "—")</td>
-                        <td class="text-end">
-                            <button class="btn btn-outline-success btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)">Edit</button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete.InvokeAsync(log)">Delete</button>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr class="table-light text-muted opacity-75">
-                        <td>
-                            <span>@currentDate.DayOfWeek.ToString().Substring(0, 3)</span>, @currentDate.ToString("dd-MM-yyyy")
-                        </td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td><span class="badge bg-light text-muted border">No entry</span></td>
-                        <td>—</td>
-                        <td class="text-end">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OnAddDate.InvokeAsync(currentDate)">+ Add</button>
-                        </td>
-                    </tr>
-                }
-            }
-        </tbody>
-        @if (WeeklyLogs.Any())
-        {
-            <tfoot class="table-group-divider bg-light fw-bold small">
+<div class="ph-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 ph-table">
+            <thead>
                 <tr>
-                    <td>Weekly Average</td>
-                    <td>@WeeklyLogs.Average(l => l.Weight).ToString("0.0")</td>
-                    <td>@WeeklyLogs.Average(l => l.ConsumedCalories).ToString("0")</td>
-                    <td>@WeeklyLogs.Average(l => l.ConsumedProteins).ToString("0")</td>
-                    <td>@WeeklyLogs.Average(l => l.ConsumedCarbs).ToString("0")</td>
-                    <td>@WeeklyLogs.Average(l => l.ConsumedFats).ToString("0")</td>
-                    <td colspan="3" class="text-muted text-end fst-italic">@WeeklyLogs.Count() / 7 days logged</td>
+                    <th>Day / Date</th>
+                    <th>Weight (kg)</th>
+                    <th>Calories</th>
+                    <th>Protein (g)</th>
+                    <th>Carbs (g)</th>
+                    <th>Fats (g)</th>
+                    <th>Training</th>
+                    <th>Note</th>
+                    <th class="text-end">Actions</th>
                 </tr>
-            </tfoot>
-        }
-    </table>
-</div>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < 7; i++)
+                {
+                    var currentDate = _weekStart.AddDays(i);
+                    var log = _logsByDate.GetValueOrDefault(currentDate);
 
+                    if (log is not null)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@currentDate.DayOfWeek.ToString().Substring(0, 3)</strong>, @currentDate.ToString("dd-MM-yyyy")
+                            </td>
+                            <td class="fw-semibold" style="font-variant-numeric: tabular-nums;">@log.Weight.ToString("0.0")</td>
+                            <td>@log.ConsumedCalories</td>
+                            <td>@log.ConsumedProteins</td>
+                            <td>@log.ConsumedCarbs</td>
+                            <td>@log.ConsumedFats</td>
+                            <td>@log.TrainingType</td>
+                            <td>@(log.Note ?? "—")</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => OnEdit.InvokeAsync(log)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete.InvokeAsync(log)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr class="ph-row-empty">
+                            <td>
+                                <span>@currentDate.DayOfWeek.ToString().Substring(0, 3)</span>, @currentDate.ToString("dd-MM-yyyy")
+                            </td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td><span class="ph-badge ph-badge-neutral">No entry</span></td>
+                            <td>—</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => OnAddDate.InvokeAsync(currentDate)">+ Add</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+            @if (WeeklyLogs.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <td>Weekly average</td>
+                        <td>@WeeklyLogs.Average(l => l.Weight).ToString("0.0")</td>
+                        <td>@WeeklyLogs.Average(l => l.ConsumedCalories).ToString("0")</td>
+                        <td>@WeeklyLogs.Average(l => l.ConsumedProteins).ToString("0")</td>
+                        <td>@WeeklyLogs.Average(l => l.ConsumedCarbs).ToString("0")</td>
+                        <td>@WeeklyLogs.Average(l => l.ConsumedFats).ToString("0")</td>
+                        <td colspan="3" class="text-end" style="color: var(--ph-accent-ink);">@WeeklyLogs.Count() / 7 days logged</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
 @code {
     [Parameter, EditorRequired] public IReadOnlyCollection<DailyLog> Logs { get; set; } = [];
     [Parameter] public EventCallback<DailyLog> OnEdit { get; set; }

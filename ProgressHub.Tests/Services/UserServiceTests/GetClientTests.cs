@@ -1,4 +1,6 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using ProgressHub.Core.Exceptions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.DTOs.ClientDTOs;
@@ -43,7 +45,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 clientId = client.Id;
             }
 
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             var result = await userService.GetClientByIdAsync(clientId);
@@ -65,7 +67,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             var result = await userService.GetClientByIdAsync(99999);
@@ -79,7 +81,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             var clients = await userService.GetAllClientsAsync();
@@ -127,7 +129,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 await seed.SaveChangesAsync();
             }
 
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             var clients = await sut.GetAllClientsAsync();
@@ -168,7 +170,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 coachId = coach.Id;
             }
 
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
             var result = await userService.GetClientByIdAsync(coachId);
 
             result.Should().BeNull();
@@ -183,7 +185,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var client1 = new CreateClientDto
             {
@@ -213,7 +215,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
 
             // Assert 2: Pokus o uložení duplicity vyhodí výjimku
             var act = async () => await sut.AddClientAsync(clientWithDuplicatePhone);
-            await act.Should().ThrowAsync<InvalidOperationException>();
+            await act.Should().ThrowAsync<DuplicatePhoneNumberException>();
         }
 
         [Theory]
@@ -224,7 +226,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            var sut = new UserService(factory);
+            var sut = new UserService(factory, NullLogger<UserService>.Instance);
 
             var client1 = new CreateClientDto
             {

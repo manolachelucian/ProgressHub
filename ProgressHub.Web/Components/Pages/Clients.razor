@@ -6,6 +6,7 @@
 @inject IUserService UserService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ILogger<Clients> Logger
 
 <PageTitle>Clients - ProgressHub</PageTitle>
 
@@ -179,15 +180,12 @@ else
     }
 
     private List<ClientListItemDto> _clients = new();
-
-    // The materialized, already-filtered-and-sorted view. Recomputed exactly once,
-    // by RecalculateVisibleClients(), whenever data/search/sort actually changes —
-    // never re-derived from a LINQ pipeline during rendering.
     private List<ClientListItemDto> _visibleClients = new();
-
 
     private CancellationTokenSource? _searchDebounceCts;
     private const int SearchDebounceMs = 300;
+
+    private string? _deleteError;
 
     private bool _isLoading = true;
     private bool _showAddClientModal;
@@ -340,14 +338,19 @@ else
 
     private async Task HandleDeleteClientAsync(ClientListItemDto client)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>(
-            "confirm",
-            $"Are you sure you want to delete client {client.FullName} and all their logs?");
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete client {client.FullName} and all their logs?");
 
-        if (confirmed)
+        if (!confirmed) return;
+
+        try
         {
             await UserService.RemoveClientAsync(client.Id);
             await LoadClientsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete client {ClientId}", client.Id);
+            _deleteError = "Failed to delete client. Please try again.";
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ProgressHub.Core.Interfaces;
 using ProgressHub.Core.Models;
 using ProgressHub.Core.Models.Enums;
@@ -45,7 +46,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
                 clientId = client.Id; // Získáme automaticky vygenerované ID
            }
 
-          IUserService userService = new UserService(factory);
+          IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             await userService.RemoveClientAsync(clientId);
@@ -70,7 +71,7 @@ namespace ProgressHub.Tests.Services.UserServiceTests
         {
             // Arrange
             var factory = TestDbContextFactory.Create();
-            IUserService userService = new UserService(factory);
+            IUserService userService = new UserService(factory, NullLogger<UserService>.Instance);
 
             // Act
             var act = async () => await userService.RemoveClientAsync(99999);

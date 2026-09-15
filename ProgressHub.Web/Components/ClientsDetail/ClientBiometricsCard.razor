@@ -1,79 +1,79 @@
 ﻿@using ProgressHub.Core.Models;
 
-<div class="card h-100 shadow-sm border-0">
-    <div class="card-body p-3">
-        <!-- Sekce Kontakt & Základní info -->
-        <div class="text-uppercase text-muted fw-semibold small mb-2">Client & Contact</div>
+<div class="ph-card h-100">
+    <div class="ph-card-body">
+        <div class="ph-section-title">Client &amp; contact</div>
         <table class="table table-sm align-middle mb-3">
             <tbody>
                 <tr>
-                    <th class="text-muted fw-normal">Email</th>
+                    <th class="ph-label fw-normal">Email</th>
                     <td>
-                        <a href="mailto:@Client.Email" class="text-decoration-none text-dark ">@Client.Email</a>
+                        <a href="mailto:@Client.Email" class="text-decoration-none" style="color: var(--ph-ink);">@Client.Email</a>
                     </td>
                 </tr>
                 <tr>
-                    <th class="text-muted fw-normal">Phone number</th>
-                    <td >
+                    <th class="ph-label fw-normal">Phone</th>
+                    <td>
                         @if (!string.IsNullOrWhiteSpace(Client.PhoneNumber))
                         {
-                            <a href="tel:@Client.PhoneNumber" class="text-decoration-none text-body">
+                            <a href="tel:@Client.PhoneNumber" class="text-decoration-none" style="color: var(--ph-ink);">
                                 @Client.PhoneNumber
                             </a>
                         }
                         else
                         {
-                            <span class="text-muted">—</span>
+                            <span class="ph-label">—</span>
                         }
                     </td>
                 </tr>
                 <tr>
-                    <th class="text-muted fw-normal">Created At</th>
-                    <td>@Client.CreatedAt.ToString("dd.MM.yyyy")</td>
+                    <th class="ph-label fw-normal">Client since</th>
+                    <td>@Client.CreatedAt.ToString("dd MMM yyyy")</td>
                 </tr>
             </tbody>
         </table>
 
-        <!-- Oddělovač -->
-        <hr class="my-3 text-muted opacity-25" />
+        <hr class="my-3" style="border-color: var(--ph-border); opacity: 1;" />
 
-        <!-- Sekce Biometrie & Cíl -->
-        <div class="text-uppercase text-muted fw-semibold small mb-2">Biometrics & Goal</div>
-        <table class="table table-sm align-middle mb-0">
+        <div class="ph-section-title">Biometrics &amp; goal</div>
+        <div class="row g-3 mb-1">
+            <div class="col-6">
+                <div class="ph-label">Current weight</div>
+                <div class="ph-metric-sm">@(LatestLog is null ? "—" : $"{LatestLog.Weight:0.0}")<span class="ph-metric-unit">kg</span></div>
+            </div>
+            <div class="col-6">
+                <div class="ph-label">BMI</div>
+                @if (CalculatedBmi is not null)
+                {
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="ph-metric-sm">@CalculatedBmi.Value.ToString("0.0")</span>
+                        <span class="ph-badge @BmiBadgeClass">@BmiCategoryText</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="ph-metric-sm">—</div>
+                }
+            </div>
+        </div>
+
+        <table class="table table-sm align-middle mb-0 mt-2">
             <tbody>
                 <tr>
-                    <th class="text-muted fw-normal ">Goal</th>
-                    <td><span>@Client.FitnessGoal</span></td>
+                    <th class="ph-label fw-normal">Goal</th>
+                    <td>@Client.FitnessGoal</td>
                 </tr>
                 <tr>
-                    <th class="text-muted fw-normal">Gender</th>
+                    <th class="ph-label fw-normal">Gender</th>
                     <td>@Client.Gender</td>
                 </tr>
                 <tr>
-                    <th class="text-muted fw-normal">Age</th>
-                    <td>@Client.GetAge() yrs (@Client.DateOfBirth.ToString("dd-MM-yyyy"))</td>
+                    <th class="ph-label fw-normal">Age</th>
+                    <td>@Client.GetAge() yrs <span class="ph-label">(@Client.DateOfBirth.ToString("dd MMM yyyy"))</span></td>
                 </tr>
                 <tr>
-                    <th class="text-muted fw-normal">Height</th>
+                    <th class="ph-label fw-normal">Height</th>
                     <td>@Client.HeightInCm cm</td>
-                </tr>
-                <tr>
-                    <th class="text-muted fw-normal">Current Weight</th>
-                    <td>@(LatestLog is null ? "—" : $"{LatestLog.Weight:0.0} kg")</td>
-                </tr>
-                <tr>
-                    <th class="text-muted fw-normal">BMI</th>
-                    <td>
-                        @if (CalculatedBmi is not null)
-                        {
-                            <span class="fw-semibold me-1">@CalculatedBmi.Value.ToString("0.0")</span>
-                            <span class="badge @BmiBadgeClass">@BmiCategoryText</span>
-                        }
-                        else
-                        {
-                            <span>—</span>
-                        }
-                    </td>
                 </tr>
             </tbody>
         </table>
@@ -90,8 +90,6 @@
     private double? CalculatedBmi =>
         LatestLog is null ? null : Client.CalculateBmi(LatestLog.Weight);
 
-    private string BMIDisplay => LatestLog is null ? " - " : (Client.CalculateBmi(LatestLog.Weight)?.ToString("0.0") ?? " - ");
-
     private string BmiCategoryText => CalculatedBmi switch
     {
         null => "—",
@@ -103,11 +101,10 @@
 
     private string BmiBadgeClass => CalculatedBmi switch
     {
-        null => "bg-secondary",
-        < 18.5 => "bg-info text-dark",
-        >= 18.5 and < 25.0 => "bg-success",
-        >= 25.0 and < 30.0 => "bg-warning text-dark",
-        _ => "bg-danger"
+        null => "ph-badge-neutral",
+        < 18.5 => "ph-badge-warn",
+        >= 18.5 and < 25.0 => "ph-badge-positive",
+        >= 25.0 and < 30.0 => "ph-badge-warn",
+        _ => "ph-badge-negative"
     };
-
 }
