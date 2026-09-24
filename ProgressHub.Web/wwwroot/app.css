@@ -347,3 +347,124 @@ footer.app-footer {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.top-row {
+    height: 3.5rem;
+    background-color: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+}
+
+.ph-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 6px;
+    background: var(--ph-accent);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.ph-brand-accent {
+    color: var(--ph-accent);
+}
+
+.navbar-toggler {
+    appearance: none;
+    cursor: pointer;
+    width: 3rem;
+    height: 2.25rem;
+    position: absolute;
+    top: 0.6rem;
+    right: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.5rem rgba(255, 255, 255, 0.06);
+}
+
+    .navbar-toggler:checked {
+        background-color: var(--ph-accent);
+        border-color: var(--ph-accent);
+    }
+
+.nav-item {
+    font-size: 0.9rem;
+    padding-bottom: 0.3rem;
+}
+
+    .nav-item:first-of-type {
+        padding-top: 1rem;
+    }
+
+    .nav-item ::deep .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        height: 2.75rem;
+        padding: 0 0.75rem;
+        color: rgba(247, 246, 243, 0.65);
+        border-radius: 8px;
+        border-left: 3px solid transparent;
+        line-height: 1;
+        width: 100%;
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    }
+
+        .nav-item ::deep .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+    .nav-item ::deep a.active {
+        color: #fff;
+        background-color: rgba(46, 158, 99, 0.16);
+        border-left-color: var(--ph-accent);
+        font-weight: 600;
+    }
+
+.ph-nav-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+}
+
+.ph-sidebar-footer {
+    margin-top: auto;
+    padding: 1rem 1.5rem;
+    font-size: 0.75rem;
+    color: rgba(247, 246, 243, 0.35);
+}
+
+.nav-scrollable {
+    display: none;
+}
+
+.navbar-toggler:checked ~ .nav-scrollable {
+    display: block;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .nav-scrollable {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
+}

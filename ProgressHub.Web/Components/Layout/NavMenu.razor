@@ -1,6 +1,9 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Progress Hub</a>
+    <div class="container-fluid px-0">
+        <a class="navbar-brand" href="">
+            <span class="ph-brand-mark">P</span>
+            <span class="ph-brand-text">Progress<span class="ph-brand-accent">Hub</span></span>
+        </a>
     </div>
 </div>
 
@@ -9,11 +12,25 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <svg class="ph-nav-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9.5 10 3l7 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M5 8.5V16a1 1 0 0 0 1 1h3v-4.5h2V17h3a1 1 0 0 0 1-1V8.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Home
+            </NavLink>
         </div>
-        <div class="nav-item px-3 ">
-            <NavLink class="nav-link" href="clients">Clients</NavLink>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="clients">
+                <svg class="ph-nav-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6" />
+                    <circle cx="14" cy="8" r="2" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M2.5 16c.4-2.6 2.3-4.5 4.5-4.5s4.1 1.9 4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    <path d="M12 12c1.8.1 3.3 1.7 3.6 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                Clients
+            </NavLink>
         </div>
     </nav>
+    <div class="ph-sidebar-footer">v1.0</div>
 </div>
-
